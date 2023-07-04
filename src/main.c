@@ -24,7 +24,7 @@ typedef struct TermState {
 TermState ts;
 
 /*** output ***/
-void viewerRefreshScreen() {
+void viewerRefreshScreen(void) {
   if (ts.dirty == 0)
     return;
 
@@ -63,7 +63,7 @@ void viewerMoveCursor(int key) {
 }
 
 /*** input ***/
-void viewerProcessKeypress() {
+void viewerProcessKeypress(void) {
   int c = viewerReadKey();
   switch (c) {
   // Quit
@@ -84,7 +84,7 @@ void viewerProcessKeypress() {
 }
 
 /*** init ***/
-void initViewer() {
+void initViewer(void) {
   // Clear screen
   write(STDOUT_FILENO, "\x1b[2J", 4);
   write(STDOUT_FILENO, "\x1b[H", 3);

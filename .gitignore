@@ -1,2 +1,5 @@
-compile_commands.json
 wsi-tv
+
+# clang related
+compile_commands.json
+.cache

@@ -10,7 +10,7 @@ void die(const char *s) {
   exit(1);
 }
 
-void disableRawMode() {
+void disableRawMode(void) {
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
     die("tcsetattr");
 
@@ -18,7 +18,7 @@ void disableRawMode() {
   write(STDOUT_FILENO, "\x1b[?25h", 6);
 }
 
-void enableRawMode() {
+void enableRawMode(void) {
   if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
     die("tcgetattr");
   atexit(disableRawMode); // Then is always called on exit
@@ -32,7 +32,7 @@ void enableRawMode() {
     die("tcsetattr");
 }
 
-int viewerReadKey() {
+int viewerReadKey(void) {
   int nread;
   char c;
   while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {

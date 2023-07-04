@@ -9,10 +9,10 @@
 
 void die(const char *s);
 
-void disableRawMode();
-void enableRawMode();
+void disableRawMode(void);
+void enableRawMode(void);
 
-int viewerReadKey();
+int viewerReadKey(void);
 int getCursorPosition(int *rows, int *cols);
 int getWindowSize(int *rows, int *cols, int *vw, int *vh);
 
