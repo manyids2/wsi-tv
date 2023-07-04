@@ -1,23 +1,23 @@
-#include "slide.h"
 #include "viewer.h"
 
-#include <assert.h>
-
-/*** state ***/
-
-// Global states
+// Global state
 ViewerState V;
-SlideState S;
 
 int main(int argc, char **argv) {
   if (argc != 2) {
-    printf("Usage: wsi-tv slidepath\n");
+    printf("Usage: wsi-tv /path/to/slide \n");
     return 1;
   }
 
-  // Open the slide, read slide props
+  // Get path to slide
   char *slide = argv[1];
-  slideInit(&S, slide);
+
+  // Initialize slidestate and give reference to V
+  SlideState S;
+  V.S = &S;
+
+  // Open slide, read slide props like level, dims
+  slideInit(V.S, slide);
 
   // Setup terminal ( disableRawMode called on exit )
   enableRawMode();
@@ -32,8 +32,8 @@ int main(int argc, char **argv) {
   }
 
   // Free all resources
+  slideFree(V.S);
   viewerFree(&V);
-  slideFree(&S);
 
   return 0;
 }

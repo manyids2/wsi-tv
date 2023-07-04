@@ -1,8 +1,8 @@
 #include "slide.h"
 
-void slideInit(SlideState *S, char *path) {
+void slideInit(SlideState *S, char *slide) {
   // Open ( exit if error )
-  openslide_t *osr = openslide_open(path);
+  openslide_t *osr = openslide_open(slide);
   assert(osr != NULL && openslide_get_error(osr) == NULL);
 
   // Get count of levels in wsi pyramid

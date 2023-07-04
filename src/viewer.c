@@ -1,4 +1,5 @@
 #include "viewer.h"
+#include <stdio.h>
 
 void viewerFree(ViewerState *V) {
   // nothing to free yet
@@ -17,6 +18,15 @@ void viewerInit(ViewerState *V) {
   V->dirty = 1;
 }
 
+void viewerRender(ViewerState *V, struct abuf *ab) {
+  char s[80];
+  int len =
+      snprintf(s, sizeof(s), "V: %d, %d \n", V->vw, V->vh);
+
+  // ab buffer keeps expanding...
+  abAppend(ab, s, len);
+}
+
 void viewerRefreshScreen(ViewerState *V) {
   if (V->dirty == 0)
     return;
@@ -30,6 +40,7 @@ void viewerRefreshScreen(ViewerState *V) {
   abAppend(&ab, "\x1b[?25l", 6);
 
   // ... main render function ...
+  viewerRender(V, &ab);
 
   // Finally write out
   write(STDOUT_FILENO, ab.b, ab.len);
