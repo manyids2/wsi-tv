@@ -15,4 +15,3 @@ void enableRawMode(void);
 
 int getKeypress(void);
 int getWindowSize(int *rows, int *cols, int *vw, int *vh);
-
