@@ -1,0 +1,1 @@
+#include <openslide/openslide.h>
