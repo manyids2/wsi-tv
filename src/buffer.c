@@ -1,5 +1,4 @@
 #include "buffer.h"
-#include <string.h>
 
 void abAppend(struct abuf *ab, const char *s, int len) {
   char *new = realloc(ab->b, ab->len + len);

@@ -32,7 +32,7 @@ void enableRawMode(void) {
     die("tcsetattr");
 }
 
-int viewerReadKey(void) {
+int getKeypress(void) {
   int nread;
   char c;
   while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
