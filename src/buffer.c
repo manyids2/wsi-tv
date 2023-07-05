@@ -123,7 +123,7 @@ void provisionImage(int index, int w, int h) {
   int i = 0;
 
   // Initial code
-  len = snprintf(s, sizeof(s), "\e_Gt=d,f=24,q=1,i=%d,s=%d,v=%d,m=%d;", index, w,
+  len = snprintf(s, sizeof(s), "\e_Gt=d,f=24,q=2,i=%d,s=%d,v=%d,m=%d;", index, w,
                  h, inlen > CHUNK);
   write(STDOUT_FILENO, s, len);
 
@@ -162,7 +162,7 @@ void displayImage(int index, int row, int col, int X, int Y, int Z) {
   moveCursor(row, col);
 
   // Tell kitty to display image that was provisioned
-  int len = snprintf(s, sizeof(s), "\e_Ga=p,i=%d,q=1,X=%d,Y=%d,C=1,z=%d;\e\\",
+  int len = snprintf(s, sizeof(s), "\e_Ga=p,i=%d,q=2,X=%d,Y=%d,C=1,z=%d;\e\\",
                      index, X, Y, Z);
   write(STDOUT_FILENO, s, len);
 }

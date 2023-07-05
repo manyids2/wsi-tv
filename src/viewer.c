@@ -33,7 +33,7 @@ void viewerInit(ViewerState *V) {
   V->my = (int)floor((float)V->vh / V->ts);
 
   // Send thumbnail to kitty
-  // provisionImage(THUMBNAIL_ID, V->S->thumbnail_w, V->S->thumbnail_w);
+  provisionImage(THUMBNAIL_ID, V->S->thumbnail_w, V->S->thumbnail_w);
 
   // Dirty for first render
   V->dirty = 1;
@@ -84,11 +84,11 @@ void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
 }
 
 void viewerRender(ViewerState *V, struct abuf *ab) {
-  // displayImage(THUMBNAIL_ID, 2, 2, 0, 0, -1);
+  displayImage(THUMBNAIL_ID, 2, 2, 0, 0, -1);
 }
 
 void viewerRefreshScreen(ViewerState *V) {
-  if (V->dirty)
+  if (!V->dirty)
     return;
 
   // Initialize a buffer
