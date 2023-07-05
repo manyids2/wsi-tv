@@ -80,6 +80,7 @@ char *b64_encode(char *in, size_t len) {
   out = malloc(elen + 1);
   out[elen] = '\0';
 
+  // TODO: Read in 4 * 3 = 12 block size to rearrange v
   for (i = 0, j = 0; i < len; i += 3, j += 4) {
     v = in[i];
     v = i + 1 < len ? v << 8 | in[i + 1] : v << 8;
