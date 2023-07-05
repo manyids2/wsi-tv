@@ -4,6 +4,7 @@ void slideInit(SlideState *S, char *slide) {
   // Open ( exit if error )
   openslide_t *osr = openslide_open(slide);
   assert(osr != NULL && openslide_get_error(osr) == NULL);
+  S->osr = osr;
 
   // Get count of levels in wsi pyramid
   S->level_count = openslide_get_level_count(osr);

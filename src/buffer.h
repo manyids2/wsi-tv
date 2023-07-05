@@ -30,7 +30,7 @@ void bufferInit(BufferState *B, int mx, int my, int ts);
 void bufferFree(BufferState *B);
 
 // Kitty related
-void provisionImage(int index, int w, int h);
+void provisionImage(int index, int w, int h, uint32_t* buf);
 void displayImage(int index, int row, int col, int X, int Y, int Z);
 void clearImage(int index);
 void deleteImage(int index);

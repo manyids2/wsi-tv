@@ -4,41 +4,6 @@ void viewerFree(ViewerState *V) {
   // nothing to free yet
 }
 
-void viewerInit(ViewerState *V) {
-  // Clear screen
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
-
-  // Read window size
-  if (getWindowSize(&V->rows, &V->cols, &V->vw, &V->vh) == -1)
-    die("getWindowSize");
-
-  // Compute cell size
-  V->cw = (int)V->vw / V->cols;
-  V->ch = (int)V->vh / V->cols;
-
-  // Store current l, x, y, world, view
-  V->l = V->S->level_count - 1; // Lowest zoom
-  V->x = 0;                     // Starting tile
-  V->y = 0;                     //  at top left corner
-
-  // World size is size of slide at level `l`
-  V->ww = V->S->level_w[V->l];
-  V->wh = V->S->level_h[V->l];
-
-  // Set maximums for level, x, y
-  V->ts = TILE_SIZE;
-  V->ml = V->S->level_count;
-  V->mx = (int)floor((float)V->vw / V->ts);
-  V->my = (int)floor((float)V->vh / V->ts);
-
-  // Send thumbnail to kitty
-  provisionImage(THUMBNAIL_ID, V->S->thumbnail_w, V->S->thumbnail_w);
-
-  // Dirty for first render
-  V->dirty = 1;
-}
-
 void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
   char s[512];
   int len, l, w, h;
@@ -83,8 +48,47 @@ void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
   abAppend(ab, s, len);
 }
 
+void viewerInit(ViewerState *V) {
+  // Clear screen
+  write(STDOUT_FILENO, "\x1b[2J", 4);
+  write(STDOUT_FILENO, "\x1b[H", 3);
+
+  // Read window size
+  if (getWindowSize(&V->rows, &V->cols, &V->vw, &V->vh) == -1)
+    die("getWindowSize");
+
+  // Compute cell size
+  V->cw = (int)V->vw / V->cols;
+  V->ch = (int)V->vh / V->cols;
+
+  // Store current l, x, y, world, view
+  V->l = V->S->level_count - 1; // Lowest zoom
+  V->x = 0;                     // Starting tile
+  V->y = 0;                     //  at top left corner
+
+  // World size is size of slide at level `l`
+  V->ww = V->S->level_w[V->l];
+  V->wh = V->S->level_h[V->l];
+
+  // Set maximums for level, x, y
+  V->ts = TILE_SIZE;
+  V->ml = V->S->level_count;
+  V->mx = (int)floor((float)V->vw / V->ts);
+  V->my = (int)floor((float)V->vh / V->ts);
+
+  // Send thumbnail to kitty
+  int w = V->S->thumbnail_w;
+  int h = V->S->thumbnail_h;
+  // uint32_t *buf = malloc(w * h * sizeof(uint32_t));
+  uint32_t *buf = V->S->thumbnail;
+  provisionImage(THUMBNAIL_ID, w, h, buf);
+
+  // Dirty for first render
+  V->dirty = 1;
+}
+
 void viewerRender(ViewerState *V, struct abuf *ab) {
-  displayImage(THUMBNAIL_ID, 2, 2, 0, 0, -1);
+  displayImage(THUMBNAIL_ID, 0, 0, 0, 0, -1);
 }
 
 void viewerRefreshScreen(ViewerState *V) {
@@ -144,8 +148,6 @@ void viewerHandleKeypress(ViewerState *V, int key) {
   case 'o':
     V->l = MIN(V->l + 1, V->ml - 1);
     V->dirty = 1;
-    break;
-  default:
     break;
   }
 }

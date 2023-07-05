@@ -1,5 +1,6 @@
 #include "buffer.h"
 #include "term.h"
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,45 +102,38 @@ char *b64_encode(char *in, size_t len) {
   return out;
 }
 
-void provisionImage(int index, int w, int h) {
-  char s[64]; // giri giri
+void provisionImage(int index, int w, int h, uint32_t *buf) {
+  char s[128]; // giri giri
   int len;
 
   // RGBA, each one byte ( char ) -> one uint32_t
   int inlen = w * h * sizeof(uint32_t);
   int inlen64 = b64_encoded_size(inlen);
 
-  // Allocate 0s for temporary image
-  char *buf = calloc(w * h * 4, sizeof(char));
-
   // Encode in base64
   char *buf64 = malloc(inlen64 * sizeof(char));
-  buf64 = b64_encode(buf, inlen);
+  buf64 = b64_encode((char *)buf, inlen);
 
-  // Signal that we are sending first chunk, as RGBA(f=24), data(t=d), with
-  // width and height
-  w = 2;
-  h = 2;
-  int i = 0;
-
-  // Initial code
-  len = snprintf(s, sizeof(s), "\e_Gt=d,f=24,q=2,i=%d,s=%d,v=%d,m=%d;", index, w,
-                 h, inlen > CHUNK);
+  // Signal that we are sending first chunk, as RGBA(f=32), data(t=d), with
+  // width and height so kitty can understand the image dims
+  len = snprintf(s, sizeof(s), "\e_Gt=d,f=32,q=2,i=%d,s=%d,v=%d,m=%d;", index,
+                 w, h, inlen64 > CHUNK);
   write(STDOUT_FILENO, s, len);
 
   // Loop over data
-  while (inlen) {
+  int i = 0;
+  while (inlen64) {
     // Remaining buffer
     write(STDOUT_FILENO, &buf64[CHUNK * i],
-          MIN(inlen, CHUNK)); // First the escape code, and not last chunk
+          MIN(inlen64, CHUNK)); // First the escape code, and not last chunk
 
     // Keep track of what we wrote
-    inlen -= CHUNK;
+    inlen64 -= CHUNK;
 
     // Only if there is more for next iteration
-    if (inlen) {
+    if (inlen64) {
       // End and escape code for next block
-      len = snprintf(s, sizeof(s), "\e\\\e_Gm=%d;", inlen > CHUNK);
+      len = snprintf(s, sizeof(s), "\e\\\e_Gm=%d;", inlen64 > CHUNK);
       write(STDOUT_FILENO, s, len);
     }
 
@@ -151,7 +145,7 @@ void provisionImage(int index, int w, int h) {
   len = snprintf(s, sizeof(s), "\e\\");
   write(STDOUT_FILENO, s, len);
 
-  free(buf);
+  // Free resources
   free(buf64);
 }
 
