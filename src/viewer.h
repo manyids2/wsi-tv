@@ -1,6 +1,7 @@
 #include "buffer.h"
 #include "slide.h"
 #include "term.h"
+#include <math.h>
 
 #define TILE_SIZE 256
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -16,8 +17,10 @@ typedef struct ViewerState {
 
   int l, x, y;    // current level and position
   int ml, mx, my; // current max tiles in l, x, y
+  int ts;         // tile size
 
-  SlideState *S; // slide with levels, dims, etc.
+  SlideState *S;  // slide with levels, dims, etc.
+  BufferState *B; // struct with current buffers
 } ViewerState;
 
 void viewerInit(ViewerState *V);

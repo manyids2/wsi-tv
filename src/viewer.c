@@ -1,6 +1,4 @@
 #include "viewer.h"
-#include <math.h>
-#include <stdio.h>
 
 void viewerFree(ViewerState *V) {
   // nothing to free yet
@@ -29,13 +27,10 @@ void viewerInit(ViewerState *V) {
   V->wh = V->S->level_h[V->l];
 
   // Set maximums for level, x, y
+  V->ts = TILE_SIZE;
   V->ml = V->S->level_count;
-  V->mx = (int)floor((float)V->vw / TILE_SIZE);
-  V->my = (int)floor((float)V->vh / TILE_SIZE);
-
-  // Compute number of tiles
-  // based on world size and tile size
-  // TODO:
+  V->mx = (int)floor((float)V->vw / V->ts);
+  V->my = (int)floor((float)V->vh / V->ts);
 
   // Dirty for first render
   V->dirty = 1;
