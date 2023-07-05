@@ -3,6 +3,10 @@
 #include <string.h>
 
 #define MAX_XY 32
+#define TILE_SIZE 256
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define CHUNK 4096 // for kitty
 
 struct abuf {
   char *b;
@@ -24,3 +28,9 @@ typedef struct BufferState {
 
 void bufferInit(BufferState *B, int mx, int my, int ts);
 void bufferFree(BufferState *B);
+
+// Kitty related
+void provisionImage(int index, int w, int h);
+void displayImage(int index, int row, int col, int X, int Y, int Z);
+void clearImage(int index);
+void deleteImage(int index);

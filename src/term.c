@@ -1,5 +1,7 @@
 #include "term.h"
 
+#define CHUNK_SIZE 4096
+
 struct termios orig_termios;
 
 void die(const char *s) {
@@ -81,3 +83,13 @@ int getWindowSize(int *rows, int *cols, int *vw, int *vh) {
   *vh = ws.ws_ypixel;
   return 0;
 }
+
+void moveCursor(int row, int col) {
+  char s[32]; // giri giri
+  int len = snprintf(s, sizeof(s), "\x1b[%d;%dH", row, col);
+  write(STDOUT_FILENO, s, len);
+}
+
+void hideCursor(void) { write(STDOUT_FILENO, "\x1b[?25l", 6); }
+void showCursor(void) { write(STDOUT_FILENO, "\x1b[?25h", 6); }
+void clearScreen(void) { write(STDOUT_FILENO, "\x1b[J", 3); }

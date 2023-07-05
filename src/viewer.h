@@ -3,10 +3,6 @@
 #include "term.h"
 #include <math.h>
 
-#define TILE_SIZE 256
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
 typedef struct ViewerState {
   int dirty; // only render if dirty
 
@@ -24,7 +20,10 @@ typedef struct ViewerState {
 } ViewerState;
 
 void viewerInit(ViewerState *V);
+void viewerFree(ViewerState *V);
+
 void viewerRefreshScreen(ViewerState *V);
 void viewerHandleKeypress(ViewerState *V, int key);
 void viewerProcessKeypress(ViewerState *V);
-void viewerFree(ViewerState *V);
+
+void viewerAllocateThumbnail(ViewerState *V);

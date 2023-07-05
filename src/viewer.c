@@ -32,6 +32,9 @@ void viewerInit(ViewerState *V) {
   V->mx = (int)floor((float)V->vw / V->ts);
   V->my = (int)floor((float)V->vh / V->ts);
 
+  // Send thumbnail to kitty
+  // provisionImage(THUMBNAIL_ID, V->S->thumbnail_w, V->S->thumbnail_w);
+
   // Dirty for first render
   V->dirty = 1;
 }
@@ -71,12 +74,21 @@ void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
     len = snprintf(s, sizeof(s), "    %2d: %6d, %6d, %f  \r\n", i, w, h, d);
     abAppend(ab, s, len);
   }
+
+  // Thumbnail
+  len = snprintf(s, sizeof(s),
+                 "  Thumbail: \r\n"
+                 "    w, h: %6ld, %6ld\r\n",
+                 V->S->thumbnail_w, V->S->thumbnail_h);
+  abAppend(ab, s, len);
 }
 
-void viewerRender(ViewerState *V, struct abuf *ab) { viewerPrintDebug(V, ab); }
+void viewerRender(ViewerState *V, struct abuf *ab) {
+  // displayImage(THUMBNAIL_ID, 2, 2, 0, 0, -1);
+}
 
 void viewerRefreshScreen(ViewerState *V) {
-  if (V->dirty == 0)
+  if (V->dirty)
     return;
 
   // Initialize a buffer
@@ -91,6 +103,9 @@ void viewerRefreshScreen(ViewerState *V) {
 
   // ... main render function ...
   viewerRender(V, &ab);
+
+  // Print debug info
+  viewerPrintDebug(V, &ab);
 
   // Finally write out
   write(STDOUT_FILENO, ab.b, ab.len);
@@ -129,6 +144,8 @@ void viewerHandleKeypress(ViewerState *V, int key) {
   case 'o':
     V->l = MIN(V->l + 1, V->ml - 1);
     V->dirty = 1;
+    break;
+  default:
     break;
   }
 }

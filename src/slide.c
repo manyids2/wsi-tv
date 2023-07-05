@@ -15,6 +15,34 @@ void slideInit(SlideState *S, char *slide) {
     openslide_get_level_dimensions(osr, level, &S->level_w[level],
                                    &S->level_h[level]);
   }
+
+  // Get associated images
+  const char *const *associated_image_names =
+      openslide_get_associated_image_names(osr);
+
+  while (*associated_image_names) {
+    int64_t w, h;
+    const char *name = *associated_image_names;
+
+    if (!strcmp(name, "thumbnail\0")) {
+      // Get size of thumbnail
+      openslide_get_associated_image_dimensions(osr, name, &w, &h);
+
+      // Allocate
+      S->thumbnail_w = w;
+      S->thumbnail_h = h;
+      S->thumbnail = malloc(h * w * sizeof(uint32_t));
+
+      // Read thumbnail
+      openslide_read_associated_image(osr, name, S->thumbnail);
+      return;
+    }
+
+    associated_image_names++;
+  }
 }
 
-void slideFree(SlideState *S) { openslide_close(S->osr); }
+void slideFree(SlideState *S) {
+  openslide_close(S->osr);
+  free(S->thumbnail);
+}
