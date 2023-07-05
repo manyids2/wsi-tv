@@ -1,6 +1,7 @@
 #include "buffer.h"
 #include "term.h"
 #include <assert.h>
+#include <libpng/png.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,6 +102,32 @@ char *b64_encode(char *in, size_t len) {
   }
 
   return out;
+}
+
+void encode_png(uint32_t *buffer, unsigned char *wbuffer, int w, int h) {
+  // https://stackoverflow.com/questions/53237065/using-libpng-1-2-to-write-rgb-image-buffer-to-png-buffer-in-memory-causing-segme
+  png_image wimage;
+  memset(&wimage, 0, (sizeof wimage));
+  wimage.version = PNG_IMAGE_VERSION;
+  wimage.format = PNG_FORMAT_BGR;
+  wimage.width = w;
+  wimage.height = h;
+
+  // My own shite
+  int *nullptr = NULL;
+  png_alloc_size_t wlength;
+
+  // Get memory size
+  bool wresult = png_image_write_to_memory(&wimage, nullptr, &wlength, 1,
+                                           buffer, 0, nullptr);
+  if (!wresult) {
+    exit(1);
+  }
+
+  // Real write to memory
+  wbuffer = (unsigned char *)malloc(wlength);
+  wresult = png_image_write_to_memory(&wimage, wbuffer, &wlength, 1, buffer, 0,
+                                      nullptr);
 }
 
 void provisionImage(int index, int w, int h, uint32_t *buf) {
