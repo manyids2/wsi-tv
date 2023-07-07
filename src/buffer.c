@@ -46,7 +46,7 @@ void bufferInit(BufferState *B, int mx, int my, int ts) {
       B->yy[index] = 0;
 
       // Allocate memory for one tile
-      B->bufs[index] = malloc(B->ts * B->ts * 4 * sizeof(uint32_t));
+      B->bufs[index] = malloc(B->ts * B->ts * sizeof(uint32_t));
     }
   }
 }

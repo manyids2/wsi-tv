@@ -24,3 +24,5 @@ typedef struct SlideState {
 
 void slideInit(SlideState *S, char *slide);
 void slideFree(SlideState *S);
+
+void slideGetTile(SlideState *S, uint32_t *buf, int l, int x, int y, int ts);

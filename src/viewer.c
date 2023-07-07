@@ -2,6 +2,8 @@
 
 void viewerFree(ViewerState *V) {
   // nothing to free yet
+  //
+  bufferFree(V->B);
 }
 
 void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
@@ -17,9 +19,10 @@ void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
                  "    cw,   ch: %6d, %6d \r\n"
                  "    ww,   wh: %6d, %6d \r\n"
                  "    mx,   my: %6d, %6d \r\n\n"
-                 "     l, x, y: %6d, %6d, %6d \r\n\n",
+                 "     l, x, y: %6d, %6d, %6d \r\n"
+                 "    ol,ox,oy: %6d, %6d, %6d \r\n\n",
                  V->cols, V->rows, V->vw, V->vh, V->cw, V->ch, V->ww, V->wh,
-                 V->mx, V->my, V->l, V->x, V->y);
+                 V->mx, V->my, V->l, V->x, V->y, V->ol, V->ox, V->oy);
   abAppend(ab, s, len);
 
   // SlideState
@@ -65,6 +68,10 @@ void viewerInit(ViewerState *V) {
   V->l = V->S->level_count - 1; // Lowest zoom
   V->x = 0;                     // Starting tile
   V->y = 0;                     //  at top left corner
+  //
+  V->ol = 0; // Lowest zoom
+  V->ox = 0; // Starting tile
+  V->oy = 0; //  at top left corner
 
   // World size is size of slide at level `l`
   V->ww = V->S->level_w[V->l];
@@ -76,24 +83,46 @@ void viewerInit(ViewerState *V) {
   V->mx = (int)floor((float)V->vw / V->ts);
   V->my = (int)floor((float)V->vh / V->ts);
 
-  // Send thumbnail to kitty
+  // Send data of thumbnail to kitty, show it
   int w = V->S->thumbnail_w;
   int h = V->S->thumbnail_h;
-  // uint32_t *buf = malloc(w * h * sizeof(uint32_t));
   uint32_t *buf = V->S->thumbnail;
   provisionImage(THUMBNAIL_ID, w, h, buf);
+  displayImage(THUMBNAIL_ID, 0, 0, 0, 0, -1);
+
+  // Allocate buffers
+  bufferInit(V->B, V->mx, V->my, V->ts);
+
+  // Put tile in first buffer
+  int index = 0;
+  openslide_read_region(V->S->osr, V->B->bufs[index], V->x, V->y, V->l, V->ts,
+                        V->ts);
+  assert(openslide_get_error(V->S->osr) == NULL);
+  provisionImage(index + 1, V->ts, V->ts, V->B->bufs[index]);
 
   // Dirty for first render
   V->dirty = 1;
 }
 
-void viewerRender(ViewerState *V, struct abuf *ab) {
-  displayImage(THUMBNAIL_ID, 0, 0, 0, 0, -1);
+void viewerRender(ViewerState *V) {
+  // Put tile in first buffer
+  int index = 0;
+  int l = V->l;
+  int x = V->x * V->ts * V->S->downsamples[l];
+  int y = V->y * V->ts * V->S->downsamples[l];
+  openslide_read_region(V->S->osr, V->B->bufs[index], x, y, l, V->ts, V->ts);
+  assert(openslide_get_error(V->S->osr) == NULL);
+  clearImage(index + 1);
+  provisionImage(index + 1, V->ts, V->ts, V->B->bufs[index]);
+  displayImage(index + 1, 20, 10, 0, 0, 1);
 }
 
 void viewerRefreshScreen(ViewerState *V) {
   if (!V->dirty)
     return;
+
+  // ... main render function ...
+  viewerRender(V);
 
   // Initialize a buffer
   // realloc each time we append??
@@ -104,9 +133,6 @@ void viewerRefreshScreen(ViewerState *V) {
   abAppend(&ab, "\x1b[J", 3);
   abAppend(&ab, "\x1b[H", 3);
   abAppend(&ab, "\x1b[?25l", 6);
-
-  // ... main render function ...
-  viewerRender(V, &ab);
 
   // Print debug info
   viewerPrintDebug(V, &ab);
@@ -120,6 +146,10 @@ void viewerRefreshScreen(ViewerState *V) {
 }
 
 void viewerHandleKeypress(ViewerState *V, int key) {
+  // BUG: When MIN and MAX are hit, ol == l
+  V->ol = V->l;
+  V->ox = V->x;
+  V->oy = V->y;
   switch (key) {
   case 'h':
   case ARROW_LEFT:

@@ -28,9 +28,6 @@ int main(int argc, char **argv) {
   // Start viewer
   viewerInit(&V);
 
-  // Allocate buffers
-  bufferInit(&B, V.mx, V.my, V.ts);
-
   // Main loop
   while (1) {
     viewerRefreshScreen(&V);   // Render output
@@ -38,7 +35,6 @@ int main(int argc, char **argv) {
   }
 
   // Free all resources
-  bufferFree(V.B);
   slideFree(V.S);
   viewerFree(&V);
 

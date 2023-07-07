@@ -43,6 +43,11 @@ void slideInit(SlideState *S, char *slide) {
   }
 }
 
+void slideGetTile(SlideState *S, uint32_t *buf, int l, int x, int y, int ts) {
+  openslide_read_region(S->osr, buf, x * ts, y * ts, l, ts, ts);
+  assert(!openslide_get_error(S->osr));
+}
+
 void slideFree(SlideState *S) {
   openslide_close(S->osr);
   free(S->thumbnail);

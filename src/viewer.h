@@ -12,6 +12,7 @@ typedef struct ViewerState {
   int cw, ch;     // cell dims
 
   int l, x, y;    // current level and position
+  int ol, ox, oy; // old level and position
   int ml, mx, my; // current max tiles in l, x, y
   int ts;         // tile size
 
@@ -22,8 +23,11 @@ typedef struct ViewerState {
 void viewerInit(ViewerState *V);
 void viewerFree(ViewerState *V);
 
+void viewerRender(ViewerState *V);
+
 void viewerRefreshScreen(ViewerState *V);
 void viewerHandleKeypress(ViewerState *V, int key);
 void viewerProcessKeypress(ViewerState *V);
 
 void viewerAllocateThumbnail(ViewerState *V);
+void viewerInitTiles(ViewerState *V);
