@@ -26,7 +26,7 @@ void enableRawMode(void) {
   raw.c_iflag &= ~(ICRNL | IXON);
   raw.c_oflag &= ~(OPOST);
   raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-  raw.c_cc[VMIN] = 0;
+  raw.c_cc[VMIN] = 1;
   raw.c_cc[VTIME] = 0; // NOTE: blocking, allows only single character input
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
     die("tcsetattr");

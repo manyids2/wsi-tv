@@ -16,6 +16,8 @@ typedef struct ViewerState {
   int ml, mx, my; // current max tiles in l, x, y
   int ts;         // tile size
 
+  int thumbnail_visible; // thumbnail
+
   SlideState *S;  // slide with levels, dims, etc.
   BufferState *B; // struct with current buffers
 } ViewerState;

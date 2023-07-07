@@ -88,15 +88,25 @@ void viewerInit(ViewerState *V) {
   int h = V->S->thumbnail_h;
   uint32_t *buf = V->S->thumbnail;
   provisionImage(THUMBNAIL_ID, w, h, buf);
-  displayImage(THUMBNAIL_ID, 0, 0, 0, 0, -1);
+  displayImage(THUMBNAIL_ID, 0, 0, 0, 0, 2);
 
   // Allocate buffers
   int bmx = (int)floor((float)V->vw / V->ts);
   int bmy = (int)floor((float)V->vh / V->ts);
   bufferInit(V->B, bmx, bmy, V->ts);
 
-  // Dirty for first render
+  // Dirty for first render, show thumbnail
   V->dirty = 1;
+  V->thumbnail_visible = 1;
+}
+
+void viewerToggleThumbnail(ViewerState *V) {
+  V->thumbnail_visible = !V->thumbnail_visible;
+  if (V->thumbnail_visible) {
+    displayImage(THUMBNAIL_ID, 0, 0, 0, 0, 2);
+  } else {
+    clearImage(THUMBNAIL_ID);
+  }
 }
 
 void viewerResetLevel(ViewerState *V) {
@@ -105,33 +115,35 @@ void viewerResetLevel(ViewerState *V) {
   V->mx = (int)floor((float)V->ww / V->ts);
   V->my = (int)floor((float)V->wh / V->ts);
 
-  // Pull back to origin for now
-  V->x = 0;
-  V->y = 0;
+  // Calculate ratio of old to new levels
+  float ratio = V->S->downsamples[V->ol] / V->S->downsamples[V->l];
+  V->x = V->x * ratio;
+  V->y = V->y * ratio;
 }
 
 void viewerRender(ViewerState *V) {
   // Put tile in first buffer
   int tx, ty, row, col, X, Y, index;
   int l = V->l;
+  int ts = V->ts;
 
   // Put tile in buffer
   for (int x = 0; x < V->B->mx; x++) {
     for (int y = 0; y < V->B->my; y++) {
       tx = V->x + x;
       ty = V->y + y;
-      col = (x * V->ts) / V->cw;
-      row = (y * V->ts) / V->ch;
-      X = x * V->ts - (col * V->cw);
-      Y = y * V->ts - (row * V->ch);
+      col = (x * ts) / V->cw;
+      row = (y * ts) / V->ch;
+      X = x * ts - (col * V->cw);
+      Y = y * ts - (row * V->ch);
+      index = x * V->B->my + y;
+      clearImage(index + 1);
       if ((tx < V->mx) && (ty < V->my)) {
-        index = x * V->B->my + y;
-        int sx = tx * V->ts * V->S->downsamples[l];
-        int sy = ty * V->ts * V->S->downsamples[l];
-        openslide_read_region(V->S->osr, V->B->bufs[index], sx, sy, l, V->ts,
-                              V->ts);
+        int sx = tx * ts * V->S->downsamples[l];
+        int sy = ty * ts * V->S->downsamples[l];
+        openslide_read_region(V->S->osr, V->B->bufs[index], sx, sy, l, ts, ts);
         assert(openslide_get_error(V->S->osr) == NULL);
-        provisionImage(index + 1, V->ts, V->ts, V->B->bufs[index]);
+        provisionImage(index + 1, ts, ts, V->B->bufs[index]);
         displayImage(index + 1, row, col, X, Y, 1);
       }
     }
@@ -168,39 +180,64 @@ void viewerRefreshScreen(ViewerState *V) {
 
 void viewerHandleKeypress(ViewerState *V, int key) {
   // BUG: When MIN and MAX are hit, ol == l
-  V->ol = V->l;
-  V->ox = V->x;
-  V->oy = V->y;
+  int newval;
   switch (key) {
   case 'h':
   case ARROW_LEFT:
-    V->x = MAX(V->x - 1, 0);
-    V->dirty = 1;
+    newval = MAX(V->x - 1, 0);
+    if (newval != V->x) {
+      V->ox = V->x;
+      V->x = newval;
+      V->dirty = 1;
+    }
     break;
   case 'l':
   case ARROW_RIGHT:
-    V->x = MIN(V->x + 1, V->mx - 1);
-    V->dirty = 1;
+    newval = MIN(V->x + 1, V->mx - 1);
+    if (newval != V->x) {
+      V->ox = V->x;
+      V->x = newval;
+      V->dirty = 1;
+    }
     break;
   case 'k':
   case ARROW_UP:
-    V->y = MAX(V->y - 1, 0);
-    V->dirty = 1;
+    newval = MAX(V->y - 1, 0);
+    if (newval != V->y) {
+      V->oy = V->y;
+      V->y = newval;
+      V->dirty = 1;
+    }
     break;
   case 'j':
   case ARROW_DOWN:
-    V->y = MIN(V->y + 1, V->my - 1);
-    V->dirty = 1;
+    newval = MIN(V->y + 1, V->my - 1);
+    if (newval != V->y) {
+      V->oy = V->y;
+      V->y = newval;
+      V->dirty = 1;
+    }
     break;
   case 'i':
-    V->l = MAX(V->l - 1, 0);
-    viewerResetLevel(V);
-    V->dirty = 1;
+    newval = MAX(V->l - 1, 0);
+    if (newval != V->l) {
+      V->ol = V->l;
+      V->l = newval;
+      viewerResetLevel(V);
+      V->dirty = 1;
+    }
     break;
   case 'o':
-    V->l = MIN(V->l + 1, V->ml - 1);
-    viewerResetLevel(V);
-    V->dirty = 1;
+    newval = MIN(V->l + 1, V->ml - 1);
+    if (newval != V->l) {
+      V->ol = V->l;
+      V->l = newval;
+      viewerResetLevel(V);
+      V->dirty = 1;
+    }
+    break;
+  case 't':
+    viewerToggleThumbnail(V);
     break;
   }
 }
@@ -226,6 +263,7 @@ void viewerProcessKeypress(ViewerState *V) {
   case 'l':
   case 'i':
   case 'o':
+  case 't':
     viewerHandleKeypress(V, c);
     break;
   }
