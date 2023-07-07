@@ -62,7 +62,7 @@ void viewerInit(ViewerState *V) {
 
   // Compute cell size
   V->cw = (int)V->vw / V->cols;
-  V->ch = (int)V->vh / V->cols;
+  V->ch = (int)V->vh / V->rows;
 
   // Store current l, x, y, world, view
   V->l = V->S->level_count - 1; // Lowest zoom
@@ -80,8 +80,8 @@ void viewerInit(ViewerState *V) {
   // Set maximums for level, x, y
   V->ts = TILE_SIZE;
   V->ml = V->S->level_count;
-  V->mx = (int)floor((float)V->vw / V->ts);
-  V->my = (int)floor((float)V->vh / V->ts);
+  V->mx = (int)floor((float)V->ww / V->ts);
+  V->my = (int)floor((float)V->wh / V->ts);
 
   // Send data of thumbnail to kitty, show it
   int w = V->S->thumbnail_w;
@@ -91,30 +91,51 @@ void viewerInit(ViewerState *V) {
   displayImage(THUMBNAIL_ID, 0, 0, 0, 0, -1);
 
   // Allocate buffers
-  bufferInit(V->B, V->mx, V->my, V->ts);
-
-  // Put tile in first buffer
-  int index = 0;
-  openslide_read_region(V->S->osr, V->B->bufs[index], V->x, V->y, V->l, V->ts,
-                        V->ts);
-  assert(openslide_get_error(V->S->osr) == NULL);
-  provisionImage(index + 1, V->ts, V->ts, V->B->bufs[index]);
+  int bmx = (int)floor((float)V->vw / V->ts);
+  int bmy = (int)floor((float)V->vh / V->ts);
+  bufferInit(V->B, bmx, bmy, V->ts);
 
   // Dirty for first render
   V->dirty = 1;
 }
 
+void viewerResetLevel(ViewerState *V) {
+  V->ww = V->S->level_w[V->l];
+  V->wh = V->S->level_h[V->l];
+  V->mx = (int)floor((float)V->ww / V->ts);
+  V->my = (int)floor((float)V->wh / V->ts);
+
+  // Pull back to origin for now
+  V->x = 0;
+  V->y = 0;
+}
+
 void viewerRender(ViewerState *V) {
   // Put tile in first buffer
-  int index = 0;
+  int tx, ty, row, col, X, Y, index;
   int l = V->l;
-  int x = V->x * V->ts * V->S->downsamples[l];
-  int y = V->y * V->ts * V->S->downsamples[l];
-  openslide_read_region(V->S->osr, V->B->bufs[index], x, y, l, V->ts, V->ts);
-  assert(openslide_get_error(V->S->osr) == NULL);
-  clearImage(index + 1);
-  provisionImage(index + 1, V->ts, V->ts, V->B->bufs[index]);
-  displayImage(index + 1, 20, 10, 0, 0, 1);
+
+  // Put tile in buffer
+  for (int x = 0; x < V->B->mx; x++) {
+    for (int y = 0; y < V->B->my; y++) {
+      tx = V->x + x;
+      ty = V->y + y;
+      col = (x * V->ts) / V->cw;
+      row = (y * V->ts) / V->ch;
+      X = x * V->ts - (col * V->cw);
+      Y = y * V->ts - (row * V->ch);
+      if ((tx < V->mx) && (ty < V->my)) {
+        index = x * V->B->my + y;
+        int sx = tx * V->ts * V->S->downsamples[l];
+        int sy = ty * V->ts * V->S->downsamples[l];
+        openslide_read_region(V->S->osr, V->B->bufs[index], sx, sy, l, V->ts,
+                              V->ts);
+        assert(openslide_get_error(V->S->osr) == NULL);
+        provisionImage(index + 1, V->ts, V->ts, V->B->bufs[index]);
+        displayImage(index + 1, row, col, X, Y, 1);
+      }
+    }
+  }
 }
 
 void viewerRefreshScreen(ViewerState *V) {
@@ -173,10 +194,12 @@ void viewerHandleKeypress(ViewerState *V, int key) {
     break;
   case 'i':
     V->l = MAX(V->l - 1, 0);
+    viewerResetLevel(V);
     V->dirty = 1;
     break;
   case 'o':
     V->l = MIN(V->l + 1, V->ml - 1);
+    viewerResetLevel(V);
     V->dirty = 1;
     break;
   }
