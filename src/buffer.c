@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define COMPRESSION_STRING ""
+
 // --- buffer to make strings ---
 void abAppend(struct abuf *ab, const char *s, int len) {
   char *new = realloc(ab->b, ab->len + len);
@@ -54,54 +56,42 @@ void bufferFree(BufferState *B) {
 }
 
 // --- kitty related ---
-// https://nachtimwald.com/2017/11/18/base64-encode-and-decode-in-c/
-const char b64chars[] =
+static const uint8_t base64enc_tab[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-size_t b64_encoded_size(size_t inlen) {
-  size_t ret;
-  ret = inlen;
-  if (inlen % 3 != 0)
-    ret += 3 - (inlen % 3);
-  ret /= 3;
-  ret *= 4;
-  return ret;
-}
 
-char *b64_encode(char *in, size_t len) {
-  char *out;
-  size_t elen;
-  size_t i;
-  size_t j;
-  size_t v;
+static int base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
+                         char *out) {
+  size_t ii, io;
+  uint_least32_t v;
+  size_t rem;
 
-  if (in == NULL || len == 0)
-    return NULL;
-
-  elen = b64_encoded_size(len);
-  out = malloc(elen + 1);
-  out[elen] = '\0';
-
-  // TODO: Read in 4 * 3 = 12 block size to rearrange v
-  for (i = 0, j = 0; i < len; i += 3, j += 4) {
-    v = in[i];
-    v = i + 1 < len ? v << 8 | in[i + 1] : v << 8;
-    v = i + 2 < len ? v << 8 | in[i + 2] : v << 8;
-
-    out[j] = b64chars[(v >> 18) & 0x3F];
-    out[j + 1] = b64chars[(v >> 12) & 0x3F];
-    if (i + 1 < len) {
-      out[j + 2] = b64chars[(v >> 6) & 0x3F];
-    } else {
-      out[j + 2] = '=';
-    }
-    if (i + 2 < len) {
-      out[j + 3] = b64chars[v & 0x3F];
-    } else {
-      out[j + 3] = '=';
+  for (io = 0, ii = 0, v = 0, rem = 0; ii < in_len; ii++) {
+    uint8_t ch;
+    ch = in[ii];
+    v = (v << 8) | ch;
+    rem += 8;
+    while (rem >= 6) {
+      rem -= 6;
+      if (io >= out_len)
+        return -1; /* truncation is failure */
+      out[io++] = base64enc_tab[(v >> rem) & 63];
     }
   }
-
-  return out;
+  if (rem) {
+    v <<= (6 - rem);
+    if (io >= out_len)
+      return -1; /* truncation is failure */
+    out[io++] = base64enc_tab[v & 63];
+  }
+  while (io & 3) {
+    if (io >= out_len)
+      return -1; /* truncation is failure */
+    out[io++] = '=';
+  }
+  if (io >= out_len)
+    return -1; /* no room for null terminator */
+  out[io] = 0;
+  return io;
 }
 
 void encode_png(uint32_t *buffer, unsigned char *wbuffer, int w, int h) {
@@ -130,51 +120,45 @@ void encode_png(uint32_t *buffer, unsigned char *wbuffer, int w, int h) {
                                       nullptr);
 }
 
-void provisionImage(int index, int w, int h, uint32_t *buf) {
-  char s[128]; // giri giri
-  int len;
+void provisionImage(int index, int w, int h, uint32_t *color_pixels) {
+  int total_size = w * h * sizeof(uint32_t);
+  size_t base64_size = ((total_size + 2) / 3) * 4;
+  uint8_t *base64_pixels = (uint8_t *)malloc(base64_size + 1);
 
-  // RGBA, each one byte ( char ) -> one uint32_t
-  int inlen = w * h * sizeof(uint32_t);
-  int inlen64 = b64_encoded_size(inlen);
-
-  // Encode in base64
-  char *buf64 = malloc(inlen64 * sizeof(char));
-  buf64 = b64_encode((char *)buf, inlen);
-
-  // Signal that we are sending first chunk, as RGBA(f=32), data(t=d), with
-  // width and height so kitty can understand the image dims
-  len = snprintf(s, sizeof(s), "\e_Gt=d,f=32,q=2,i=%d,s=%d,v=%d,m=%d;", index,
-                 w, h, inlen64 > CHUNK);
-  write(STDOUT_FILENO, s, len);
-
-  // Loop over data
-  int i = 0;
-  while (inlen64) {
-    // Remaining buffer
-    write(STDOUT_FILENO, &buf64[CHUNK * i],
-          MIN(inlen64, CHUNK)); // First the escape code, and not last chunk
-
-    // Keep track of what we wrote
-    inlen64 -= CHUNK;
-
-    // Only if there is more for next iteration
-    if (inlen64) {
-      // End and escape code for next block
-      len = snprintf(s, sizeof(s), "\e\\\e_Gm=%d;", inlen64 > CHUNK);
-      write(STDOUT_FILENO, s, len);
-    }
-
-    // Advance buffer
-    i++;
+  /* base64 encode the data */
+  int ret = base64_encode(total_size, (uint8_t *)color_pixels, base64_size + 1,
+                          (char *)base64_pixels);
+  if (ret < 0) {
+    fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
+    exit(1);
   }
 
-  // Final end code
-  len = snprintf(s, sizeof(s), "\e\\");
-  write(STDOUT_FILENO, s, len);
+  /*
+   * write kitty protocol RGBA image in chunks no greater than 4096 bytes
+   *
+   * <ESC>_Gf=32,s=<w>,v=<h>,m=1;<encoded pixel data first chunk><ESC>\
+   * <ESC>_Gm=1;<encoded pixel data second chunk><ESC>\
+   * <ESC>_Gm=0;<encoded pixel data last chunk><ESC>\
+   */
 
-  // Free resources
-  free(buf64);
+  size_t sent_bytes = 0;
+  while (sent_bytes < base64_size) {
+    size_t chunk_size =
+        base64_size - sent_bytes < CHUNK ? base64_size - sent_bytes : CHUNK;
+    int cont = !!(sent_bytes + chunk_size < base64_size);
+    if (sent_bytes == 0) {
+      fprintf(stdout, "\x1B_Gt=d,f=32,q=2,i=%u,s=%d,v=%d,m=%d%s;", index, w, h,
+              cont, COMPRESSION_STRING);
+    } else {
+      fprintf(stdout, "\x1B_Gm=%d;", cont);
+    }
+    fwrite(base64_pixels + sent_bytes, chunk_size, 1, stdout);
+    fprintf(stdout, "\x1B\\");
+    sent_bytes += chunk_size;
+  }
+  fflush(stdout);
+
+  free(base64_pixels);
 }
 
 void displayImage(int index, int row, int col, int X, int Y, int Z) {
@@ -184,19 +168,20 @@ void displayImage(int index, int row, int col, int X, int Y, int Z) {
   moveCursor(row, col);
 
   // Tell kitty to display image that was provisioned
-  int len = snprintf(s, sizeof(s), "\e_Ga=p,i=%d,q=2,X=%d,Y=%d,C=1,z=%d;\e\\",
-                     index, X, Y, Z);
+  int len =
+      snprintf(s, sizeof(s), "\x1b_Ga=p,i=%d,q=2,X=%d,Y=%d,C=1,z=%d;\x1b\\",
+               index, X, Y, Z);
   write(STDOUT_FILENO, s, len);
 }
 
 void clearImage(int index) {
   char s[32]; // giri giri
-  int len = snprintf(s, sizeof(s), "\e_Ga=d,d=i,i=%d;\e\\", index);
+  int len = snprintf(s, sizeof(s), "\x1b_Ga=d,d=i,i=%d;\x1b\\", index);
   write(STDOUT_FILENO, s, len);
 }
 
 void deleteImage(int index) {
   char s[32]; // giri giri
-  int len = snprintf(s, sizeof(s), "\e_Ga=d,d=I,i=%d;\e\\", index);
+  int len = snprintf(s, sizeof(s), "\x1b_Ga=d,d=I,i=%d;\x1b\\", index);
   write(STDOUT_FILENO, s, len);
 }

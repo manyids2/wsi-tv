@@ -37,26 +37,6 @@ void slideInit(SlideState *S, char *slide) {
 
       // Read thumbnail
       openslide_read_associated_image(osr, name, S->thumbnail);
-
-      //   uint8_t r, g, b, a;
-      //   for (int x = 0; x < w; x++) {
-      //     for (int y = 0; y < h; y++) {
-      //       uint32_t *pixel = (uint32_t *)&S->thumbnail[x * h + y];
-      //       // r = (*pixel & 0x000000ff);
-      //       // g = (*pixel & 0x0000ff00) >> 8;
-      //       // b = (*pixel & 0x00ff0000) >> 16;
-      //       // a = (*pixel & 0xff000000) >> 24;
-      //
-      //       // pixel[0] = (int)pow(r, 1.0 / 2.2); // r
-      //       // pixel[1] = (int)pow(r, 1.0 / 2.2); // r
-      //       // pixel[2] = (int)pow(r, 1.0 / 2.2); // r
-      //       // pixel[3] = (int)pow(r, 1.0 / 2.2); // r
-      //
-      //       // Somehow need to convert to sRGB
-      //       *pixel = 0x00ffff00;
-      //     }
-      //   }
-      //   return;
     }
 
     associated_image_names++;
