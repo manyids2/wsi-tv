@@ -1,7 +1,5 @@
 #include "term.h"
 
-#define CHUNK_SIZE 4096
-
 struct termios orig_termios;
 
 void die(const char *s) {

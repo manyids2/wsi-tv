@@ -29,6 +29,8 @@ void bufferInit(BufferState *B, int mx, int my, int ts) {
 
   // Allocate memory for pointers to buffers
   int max_buffers = mx * my;
+  if (max_buffers > MAX_BUFFERS)
+    die("Screen size exceeds expected bounds\r\n");
   B->bufs = calloc(max_buffers, sizeof(int *));
 
   // Initialize values, memory at each tile position
