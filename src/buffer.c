@@ -92,32 +92,6 @@ static int base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
   return io;
 }
 
-void encode_png(uint32_t *buffer, unsigned char *wbuffer, int w, int h) {
-  // https://stackoverflow.com/questions/53237065/using-libpng-1-2-to-write-rgb-image-buffer-to-png-buffer-in-memory-causing-segme
-  png_image wimage;
-  memset(&wimage, 0, (sizeof wimage));
-  wimage.version = PNG_IMAGE_VERSION;
-  wimage.format = PNG_FORMAT_BGR;
-  wimage.width = w;
-  wimage.height = h;
-
-  // My own shite
-  int *nullptr = NULL;
-  png_alloc_size_t wlength;
-
-  // Get memory size
-  bool wresult = png_image_write_to_memory(&wimage, nullptr, &wlength, 1,
-                                           buffer, 0, nullptr);
-  if (!wresult) {
-    exit(1);
-  }
-
-  // Real write to memory
-  wbuffer = (unsigned char *)malloc(wlength);
-  wresult = png_image_write_to_memory(&wimage, wbuffer, &wlength, 1, buffer, 0,
-                                      nullptr);
-}
-
 void bufferLoadImage(openslide_t *osr, int l, int tx, int ty, int ts,
                      float downsample, uint32_t *buf) {
   int sx = tx * ts * downsample;

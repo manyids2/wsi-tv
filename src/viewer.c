@@ -139,10 +139,6 @@ void viewerRender(ViewerState *V) {
       index = x * V->B->my + y;
       bufferClearImage(index + 1);
       if ((tx < V->mx) && (ty < V->my)) {
-        // int sx = tx * ts * V->S->downsamples[l];
-        // int sy = ty * ts * V->S->downsamples[l];
-        // openslide_read_region(V->S->osr, V->B->bufs[index], sx, sy, l, ts,
-        // ts); assert(openslide_get_error(V->S->osr) == NULL);
         bufferLoadImage(V->S->osr, l, tx, ty, ts, V->S->downsamples[l],
                         V->B->bufs[index]);
         // V->B->ll[index] = l;
