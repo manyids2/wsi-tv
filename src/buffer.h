@@ -1,6 +1,11 @@
+#include <assert.h>
+#include <libpng/png.h>
+#include <math.h>
 #include <openslide/openslide.h> // for uint32_t
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define MAX_BUFFERS 32 * 32 // max of 32 rows and cols
 #define TILE_SIZE 256
@@ -29,8 +34,10 @@ typedef struct BufferState {
 void bufferInit(BufferState *B, int mx, int my, int ts);
 void bufferFree(BufferState *B);
 
-// Kitty related
-void provisionImage(int index, int w, int h, uint32_t *buf);
-void displayImage(int index, int row, int col, int X, int Y, int Z);
-void clearImage(int index);
-void deleteImage(int index);
+// image related
+void bufferLoadImage(openslide_t *osr, int l, int tx, int ty, int ts,
+                     float downsample, uint32_t *buf);
+void bufferProvisionImage(int index, int w, int h, uint32_t *buf);
+void bufferDisplayImage(int index, int row, int col, int X, int Y, int Z);
+void bufferClearImage(int index);
+void bufferDeleteImage(int index);

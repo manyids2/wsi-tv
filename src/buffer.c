@@ -1,11 +1,5 @@
 #include "buffer.h"
 #include "term.h"
-#include <assert.h>
-#include <libpng/png.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 #define COMPRESSION_STRING ""
 
@@ -31,6 +25,8 @@ void bufferInit(BufferState *B, int mx, int my, int ts) {
   int max_buffers = mx * my;
   if (max_buffers > MAX_BUFFERS)
     die("Screen size exceeds expected bounds\r\n");
+
+  // Put 0s in all buffers
   B->bufs = calloc(max_buffers, sizeof(int *));
 
   // Initialize values, memory at each tile position
@@ -40,7 +36,7 @@ void bufferInit(BufferState *B, int mx, int my, int ts) {
       // Formula for index
       index = x * my + y;
 
-      // Initialize ids of tiles at bufs[index]
+      // Initialize ids of tiles at bufs[index] to non existent value
       B->ll[index] = 0;
       B->xx[index] = 0;
       B->yy[index] = 0;
@@ -122,13 +118,21 @@ void encode_png(uint32_t *buffer, unsigned char *wbuffer, int w, int h) {
                                       nullptr);
 }
 
-void provisionImage(int index, int w, int h, uint32_t *color_pixels) {
+void bufferLoadImage(openslide_t *osr, int l, int tx, int ty, int ts,
+                     float downsample, uint32_t *buf) {
+  int sx = tx * ts * downsample;
+  int sy = ty * ts * downsample;
+  openslide_read_region(osr, buf, sx, sy, l, ts, ts);
+  assert(openslide_get_error(osr) == NULL);
+}
+
+void bufferProvisionImage(int index, int w, int h, uint32_t *buf) {
   int total_size = w * h * sizeof(uint32_t);
   size_t base64_size = ((total_size + 2) / 3) * 4;
   uint8_t *base64_pixels = (uint8_t *)malloc(base64_size + 1);
 
   /* base64 encode the data */
-  int ret = base64_encode(total_size, (uint8_t *)color_pixels, base64_size + 1,
+  int ret = base64_encode(total_size, (uint8_t *)buf, base64_size + 1,
                           (char *)base64_pixels);
   if (ret < 0) {
     fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
@@ -163,7 +167,7 @@ void provisionImage(int index, int w, int h, uint32_t *color_pixels) {
   free(base64_pixels);
 }
 
-void displayImage(int index, int row, int col, int X, int Y, int Z) {
+void bufferDisplayImage(int index, int row, int col, int X, int Y, int Z) {
   char s[64]; // giri giri
 
   // Move cursor to origin
@@ -176,13 +180,13 @@ void displayImage(int index, int row, int col, int X, int Y, int Z) {
   write(STDOUT_FILENO, s, len);
 }
 
-void clearImage(int index) {
+void bufferClearImage(int index) {
   char s[32]; // giri giri
   int len = snprintf(s, sizeof(s), "\x1b_Ga=d,d=i,i=%d;\x1b\\", index);
   write(STDOUT_FILENO, s, len);
 }
 
-void deleteImage(int index) {
+void bufferDeleteImage(int index) {
   char s[32]; // giri giri
   int len = snprintf(s, sizeof(s), "\x1b_Ga=d,d=I,i=%d;\x1b\\", index);
   write(STDOUT_FILENO, s, len);

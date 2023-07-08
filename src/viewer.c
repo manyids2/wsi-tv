@@ -87,8 +87,8 @@ void viewerInit(ViewerState *V) {
   int w = V->S->thumbnail_w;
   int h = V->S->thumbnail_h;
   uint32_t *buf = V->S->thumbnail;
-  provisionImage(THUMBNAIL_ID, w, h, buf);
-  displayImage(THUMBNAIL_ID, 0, 0, 0, 0, 2);
+  bufferProvisionImage(THUMBNAIL_ID, w, h, buf);
+  bufferDisplayImage(THUMBNAIL_ID, 0, 0, 0, 0, 2);
 
   // Allocate buffers
   int bmx = (int)floor((float)V->vw / V->ts);
@@ -103,9 +103,9 @@ void viewerInit(ViewerState *V) {
 void viewerToggleThumbnail(ViewerState *V) {
   V->thumbnail_visible = !V->thumbnail_visible;
   if (V->thumbnail_visible) {
-    displayImage(THUMBNAIL_ID, 0, 0, 0, 0, 2);
+    bufferDisplayImage(THUMBNAIL_ID, 0, 0, 0, 0, 2);
   } else {
-    clearImage(THUMBNAIL_ID);
+    bufferClearImage(THUMBNAIL_ID);
   }
 }
 
@@ -137,14 +137,19 @@ void viewerRender(ViewerState *V) {
       X = x * ts - (col * V->cw);
       Y = y * ts - (row * V->ch);
       index = x * V->B->my + y;
-      clearImage(index + 1);
+      bufferClearImage(index + 1);
       if ((tx < V->mx) && (ty < V->my)) {
-        int sx = tx * ts * V->S->downsamples[l];
-        int sy = ty * ts * V->S->downsamples[l];
-        openslide_read_region(V->S->osr, V->B->bufs[index], sx, sy, l, ts, ts);
-        assert(openslide_get_error(V->S->osr) == NULL);
-        provisionImage(index + 1, ts, ts, V->B->bufs[index]);
-        displayImage(index + 1, row, col, X, Y, 1);
+        // int sx = tx * ts * V->S->downsamples[l];
+        // int sy = ty * ts * V->S->downsamples[l];
+        // openslide_read_region(V->S->osr, V->B->bufs[index], sx, sy, l, ts,
+        // ts); assert(openslide_get_error(V->S->osr) == NULL);
+        bufferLoadImage(V->S->osr, l, tx, ty, ts, V->S->downsamples[l],
+                        V->B->bufs[index]);
+        // V->B->ll[index] = l;
+        // V->B->xx[index] = tx;
+        // V->B->yy[index] = ty;
+        bufferProvisionImage(index + 1, ts, ts, V->B->bufs[index]);
+        bufferDisplayImage(index + 1, row, col, X, Y, -1);
       }
     }
   }
@@ -168,7 +173,7 @@ void viewerRefreshScreen(ViewerState *V) {
   abAppend(&ab, "\x1b[?25l", 6);
 
   // Print debug info
-  viewerPrintDebug(V, &ab);
+  // viewerPrintDebug(V, &ab);
 
   // Finally write out
   write(STDOUT_FILENO, ab.b, ab.len);
