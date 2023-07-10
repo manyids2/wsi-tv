@@ -48,6 +48,10 @@ void bufferInit(BufferState *B, int vtx, int vty, int ts) {
       // Initialize kitty ids of tiles
       B->ii[index] = 0;
 
+      // Initialize position in grid
+      B->ix[index] = x;
+      B->iy[index] = y;
+
       // Allocate memory for one tile
       B->bufs[index] = malloc(B->ts * B->ts * sizeof(uint32_t));
 

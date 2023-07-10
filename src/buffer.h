@@ -31,6 +31,8 @@ typedef struct BufferState {
   int xx[MAX_BUFFERS];
   int yy[MAX_BUFFERS];
   int ii[MAX_BUFFERS]; // kitty index of tile
+  int ix[MAX_BUFFERS]; // position in grid
+  int iy[MAX_BUFFERS];
 } BufferState;
 
 void bufferInit(BufferState *B, int vtx, int vty, int ts);

@@ -105,6 +105,18 @@ void viewerInit(ViewerState *V) {
   // Initialize buffers
   bufferInit(V->B, vtx, vty, V->ts);
 
+  // Load first set of tiles
+  int index;
+  for (int x = 0; x < V->B->vtx; x++) {
+    for (int y = 0; y < V->B->vty; y++) {
+      index = x * V->B->vty + y;
+      bufferLoadImage(V->S->osr, V->l, V->x + x, V->y + y, V->ts,
+                      V->S->downsamples[V->l], V->B->bufs[index]);
+      bufferProvisionImage(index + 1, V->ts, V->ts, V->B->bufs[index],
+                           V->B->buf64);
+    }
+  }
+
   // Dirty for first render, show thumbnail
   V->dirty = 1;
   V->thumbnail_visible = 1;
@@ -133,30 +145,21 @@ void viewerResetLevel(ViewerState *V) {
 
 void viewerRender(ViewerState *V) {
   // Put tile in first buffer
-  int tx, ty, row, col, X, Y, index;
-  int l = V->l;
+  int ix, iy, row, col, X, Y, index;
   int ts = V->ts;
 
   // Put tile in buffer
   for (int x = 0; x < V->B->vtx; x++) {
     for (int y = 0; y < V->B->vty; y++) {
-      tx = V->x + x;
-      ty = V->y + y;
-      col = (x * ts) / V->cw;
-      row = (y * ts) / V->ch;
-      X = x * ts - (col * V->cw);
-      Y = y * ts - (row * V->ch);
       index = x * V->B->vty + y;
+      ix = V->B->ix[index];
+      iy = V->B->iy[index];
+      col = (ix * ts) / V->cw;
+      row = (iy * ts) / V->ch;
+      X = ix * ts - (col * V->cw);
+      Y = iy * ts - (row * V->ch);
       bufferClearImage(index + 1);
-      if ((tx < V->mx) && (ty < V->my)) {
-        bufferLoadImage(V->S->osr, l, tx, ty, ts, V->S->downsamples[l],
-                        V->B->bufs[index]);
-        // V->B->ll[index] = l;
-        // V->B->xx[index] = tx;
-        // V->B->yy[index] = ty;
-        bufferProvisionImage(index + 1, ts, ts, V->B->bufs[index], V->B->buf64);
-        bufferDisplayImage(index + 1, row, col, X, Y, -1);
-      }
+      bufferDisplayImage(index + 1, row, col, X, Y, -1);
     }
   }
 }
@@ -179,7 +182,7 @@ void viewerRefreshScreen(ViewerState *V) {
   abAppend(&ab, "\x1b[?25l", 6);
 
   // Print debug info
-  // viewerPrintDebug(V, &ab);
+  viewerPrintDebug(V, &ab);
 
   // Finally write out
   write(STDOUT_FILENO, ab.b, ab.len);
@@ -190,7 +193,6 @@ void viewerRefreshScreen(ViewerState *V) {
 }
 
 void viewerHandleKeypress(ViewerState *V, int key) {
-  // BUG: When MIN and MAX are hit, ol == l
   int newval;
   switch (key) {
   case 'h':
@@ -199,6 +201,7 @@ void viewerHandleKeypress(ViewerState *V, int key) {
     if (newval != V->x) {
       V->ox = V->x;
       V->x = newval;
+      viewerMoveLeft(V);
       V->dirty = 1;
     }
     break;
@@ -208,6 +211,7 @@ void viewerHandleKeypress(ViewerState *V, int key) {
     if (newval != V->x) {
       V->ox = V->x;
       V->x = newval;
+      viewerMoveRight(V);
       V->dirty = 1;
     }
     break;
@@ -217,6 +221,7 @@ void viewerHandleKeypress(ViewerState *V, int key) {
     if (newval != V->y) {
       V->oy = V->y;
       V->y = newval;
+      viewerMoveUp(V);
       V->dirty = 1;
     }
     break;
@@ -226,6 +231,7 @@ void viewerHandleKeypress(ViewerState *V, int key) {
     if (newval != V->y) {
       V->oy = V->y;
       V->y = newval;
+      viewerMoveDown(V);
       V->dirty = 1;
     }
     break;
@@ -277,5 +283,124 @@ void viewerProcessKeypress(ViewerState *V) {
   case 't':
     viewerHandleKeypress(V, c);
     break;
+  }
+}
+
+void viewerSetBuffer(ViewerState *V, int index, int tx, int ty, int ts, int x,
+                     int y) {
+  // load right tile into left's index
+  bufferLoadImage(V->S->osr, V->l, tx, ty, ts, V->S->downsamples[V->l],
+                  V->B->bufs[index]);
+  bufferProvisionImage(index + 1, ts, ts, V->B->bufs[index], V->B->buf64);
+
+  // record l, x, y, kitty id at buffer position index
+  V->B->ll[index] = V->l;
+  V->B->xx[index] = tx;
+  V->B->yy[index] = ty;
+  V->B->ii[index] = index + 1;
+  V->B->ix[index] = x;
+  V->B->iy[index] = y;
+}
+
+void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int x,
+                            int y) {
+  V->B->ll[index] = V->l;
+  V->B->xx[index] = tx;
+  V->B->yy[index] = ty;
+  V->B->ii[index] = index + 1;
+  V->B->ix[index] = x;
+  V->B->iy[index] = y;
+}
+
+void viewerMoveLeft(ViewerState *V) {
+  // Load new tiles into right column
+  int index, ty;
+  int x = V->B->vtx - 1; // right column
+  int ts = V->B->ts;
+  int tx = V->x - 1; // before left tile
+  // iterate over rows
+  for (int y = 0; y < V->B->vty; y++) {
+    index = x * V->B->vty + y; // right tile
+    ty = V->y + y;
+    viewerSetBuffer(V, index, tx, ty, ts, x, y);
+  }
+  // shift the rest
+  for (x = 0; x < V->B->vtx - 1; x++) {
+    for (int y = 0; y < V->B->vty; y++) {
+      index = x * V->B->vty + y;
+      tx = V->x + x;
+      ty = V->y + y;
+      viewerSetBufferIndices(V, index, tx, ty, x + 1, y);
+    }
+  }
+}
+
+void viewerMoveRight(ViewerState *V) {
+  // Load new tiles into left column
+  int index, ty;
+  int x = 0; // left column
+  int ts = V->B->ts;
+  int tx = V->x + V->B->vtx; // After right tile
+  // iterate over rows
+  for (int y = 0; y < V->B->vty; y++) {
+    index = x * V->B->vty + y; // left tile
+    ty = V->y + y;
+    viewerSetBuffer(V, index, tx, ty, ts, x, y);
+  }
+  // shift the rest
+  for (x = 1; x < V->B->vtx; x++) {
+    for (int y = 0; y < V->B->vty; y++) {
+      index = x * V->B->vty + y;
+      tx = V->x + x;
+      ty = V->y + y;
+      viewerSetBufferIndices(V, index, tx, ty, x - 1, y);
+    }
+  }
+}
+
+void viewerMoveUp(ViewerState *V) {
+  // Load new tiles into bottom row
+  int index, tx;
+  int y = V->B->vty - 1; // bottom row
+  int ts = V->B->ts;
+  int ty = V->y - 1; // above up tile
+  // iterate over rows
+  for (int x = 0; x < V->B->vtx; x++) {
+    index = x * V->B->vty + y; // bottom tile
+    tx = V->x + x;
+    viewerSetBuffer(V, index, tx, ty, ts, x, y);
+  }
+  // shift the rest
+  for (int x = 0; x < V->B->vtx; x++) {
+    for (y = 0; y < V->B->vty - 1; y++) {
+      index = x * V->B->vty + y;
+      tx = V->x + x;
+      ty = V->y + y;
+      viewerSetBufferIndices(V, index, tx, ty, x, y - 1);
+    }
+  }
+}
+
+void viewerMoveDown(ViewerState *V) {
+  // Load new tiles into up row
+  int index, tx;
+  int y = 0; // up row
+  int ts = V->B->ts;
+  int ty = V->y + V->B->vty; // below bottom tile
+  // iterate over rows
+  for (int x = 0; x < V->B->vtx; x++) {
+    index = x * V->B->vty + y; // up tile
+    tx = V->x + x;
+    viewerSetBuffer(V, index, tx, ty, ts, x, y);
+  }
+
+  // shift the rest
+  for (int x = 0; x < V->B->vtx; x++) {
+    for (y = 1; y < V->B->vty; y++) {
+      index = x * V->B->vty + y;
+      tx = V->x + x;
+      ty = V->y + y;
+      viewerSetBufferIndices(V, index, tx, ty, x, y + 1);
+    }
   }
 }

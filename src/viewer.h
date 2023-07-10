@@ -33,3 +33,8 @@ void viewerProcessKeypress(ViewerState *V);
 
 void viewerAllocateThumbnail(ViewerState *V);
 void viewerInitTiles(ViewerState *V);
+
+void viewerMoveLeft(ViewerState *V);
+void viewerMoveRight(ViewerState *V);
+void viewerMoveUp(ViewerState *V);
+void viewerMoveDown(ViewerState *V);
