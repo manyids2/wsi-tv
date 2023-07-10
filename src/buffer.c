@@ -16,13 +16,17 @@ void abAppend(struct abuf *ab, const char *s, int len) {
 void abFree(struct abuf *ab) { free(ab->b); }
 
 // --- buffer for tile images ---
-void bufferInit(BufferState *B, int mx, int my, int ts) {
-  B->mx = mx;
-  B->my = my;
+void bufferInit(BufferState *B, int vtx, int vty, int ts) {
+  B->vtx = vtx; // Constant as long as terminal is not resized
+  B->vty = vty;
   B->ts = ts;
 
+  // Compute buffer and base64 encoded size
+  int total_size = B->ts * B->ts * sizeof(uint32_t);
+  size_t base64_size = ((total_size + 2) / 3) * 4;
+
   // Allocate memory for pointers to buffers
-  int max_buffers = mx * my;
+  int max_buffers = vtx * vty;
   if (max_buffers > MAX_BUFFERS)
     die("Screen size exceeds expected bounds\r\n");
 
@@ -31,25 +35,32 @@ void bufferInit(BufferState *B, int mx, int my, int ts) {
 
   // Initialize values, memory at each tile position
   int index;
-  for (int x = 0; x < mx; x++) {
-    for (int y = 0; y < my; y++) {
+  for (int x = 0; x < vtx; x++) {
+    for (int y = 0; y < vty; y++) {
       // Formula for index
-      index = x * my + y;
+      index = x * vty + y;
 
       // Initialize ids of tiles at bufs[index] to non existent value
       B->ll[index] = 0;
       B->xx[index] = 0;
       B->yy[index] = 0;
 
+      // Initialize kitty ids of tiles
+      B->ii[index] = 0;
+
       // Allocate memory for one tile
       B->bufs[index] = malloc(B->ts * B->ts * sizeof(uint32_t));
+
+      // Allocate memory for base64 encoded data
+      B->buf64 = (uint8_t *)malloc(base64_size + 1);
     }
   }
 }
 
 void bufferFree(BufferState *B) {
-  for (int i = 0; i < B->mx * B->my; i++) {
+  for (int i = 0; i < B->vtx * B->vty; i++) {
     free(&B->bufs[i]);
+    free(B->buf64);
   }
 }
 
@@ -100,14 +111,15 @@ void bufferLoadImage(openslide_t *osr, int l, int tx, int ty, int ts,
   assert(openslide_get_error(osr) == NULL);
 }
 
-void bufferProvisionImage(int index, int w, int h, uint32_t *buf) {
+void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
+                          uint8_t *buf64) {
   int total_size = w * h * sizeof(uint32_t);
   size_t base64_size = ((total_size + 2) / 3) * 4;
-  uint8_t *base64_pixels = (uint8_t *)malloc(base64_size + 1);
+  // uint8_t *base64_pixels = (uint8_t *)malloc(base64_size + 1);
 
   /* base64 encode the data */
-  int ret = base64_encode(total_size, (uint8_t *)buf, base64_size + 1,
-                          (char *)base64_pixels);
+  int ret =
+      base64_encode(total_size, (uint8_t *)buf, base64_size + 1, (char *)buf64);
   if (ret < 0) {
     fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
     exit(1);
@@ -132,13 +144,13 @@ void bufferProvisionImage(int index, int w, int h, uint32_t *buf) {
     } else {
       fprintf(stdout, "\x1B_Gm=%d;", cont);
     }
-    fwrite(base64_pixels + sent_bytes, chunk_size, 1, stdout);
+    fwrite(buf64 + sent_bytes, chunk_size, 1, stdout);
     fprintf(stdout, "\x1B\\");
     sent_bytes += chunk_size;
   }
   fflush(stdout);
 
-  free(base64_pixels);
+  // free(base64_pixels);
 }
 
 void bufferDisplayImage(int index, int row, int col, int X, int Y, int Z) {

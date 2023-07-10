@@ -24,20 +24,23 @@ void abAppend(struct abuf *ab, const char *s, int len);
 void abFree(struct abuf *ab);
 
 typedef struct BufferState {
-  int mx, my, ts;      // size in x, y; tile size
+  int vtx, vty, ts;    // size in x, y; tile size
   uint32_t **bufs;     // pointers to actual buffers
-  int ll[MAX_BUFFERS]; // level, x, y of buf_ij
+  uint8_t *buf64;      // pointers to base64 encoded buffers
+  int ll[MAX_BUFFERS]; // level, x, y of tile
   int xx[MAX_BUFFERS];
   int yy[MAX_BUFFERS];
+  int ii[MAX_BUFFERS]; // kitty index of tile
 } BufferState;
 
-void bufferInit(BufferState *B, int mx, int my, int ts);
+void bufferInit(BufferState *B, int vtx, int vty, int ts);
 void bufferFree(BufferState *B);
 
 // image related
 void bufferLoadImage(openslide_t *osr, int l, int tx, int ty, int ts,
                      float downsample, uint32_t *buf);
-void bufferProvisionImage(int index, int w, int h, uint32_t *buf);
+void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
+                          uint8_t *buf64);
 void bufferDisplayImage(int index, int row, int col, int X, int Y, int Z);
 void bufferClearImage(int index);
 void bufferDeleteImage(int index);

@@ -87,13 +87,23 @@ void viewerInit(ViewerState *V) {
   int w = V->S->thumbnail_w;
   int h = V->S->thumbnail_h;
   uint32_t *buf = V->S->thumbnail;
-  bufferProvisionImage(THUMBNAIL_ID, w, h, buf);
+
+  // Write thumbnail to kitty
+  int total_size = w * h * sizeof(uint32_t);
+  size_t base64_size = ((total_size + 2) / 3) * 4;
+  uint8_t *buf64 = (uint8_t *)malloc(base64_size + 1);
+  bufferProvisionImage(THUMBNAIL_ID, w, h, buf, buf64);
+  free(buf64);
+
+  // Display it
   bufferDisplayImage(THUMBNAIL_ID, 0, 0, 0, 0, 2);
 
-  // Allocate buffers
-  int bmx = (int)floor((float)V->vw / V->ts);
-  int bmy = (int)floor((float)V->vh / V->ts);
-  bufferInit(V->B, bmx, bmy, V->ts);
+  // Compute maximum tiles visible given tile size and term dims
+  int vtx = (int)floor((float)V->vw / V->ts);
+  int vty = (int)floor((float)V->vh / V->ts);
+
+  // Initialize buffers
+  bufferInit(V->B, vtx, vty, V->ts);
 
   // Dirty for first render, show thumbnail
   V->dirty = 1;
@@ -128,15 +138,15 @@ void viewerRender(ViewerState *V) {
   int ts = V->ts;
 
   // Put tile in buffer
-  for (int x = 0; x < V->B->mx; x++) {
-    for (int y = 0; y < V->B->my; y++) {
+  for (int x = 0; x < V->B->vtx; x++) {
+    for (int y = 0; y < V->B->vty; y++) {
       tx = V->x + x;
       ty = V->y + y;
       col = (x * ts) / V->cw;
       row = (y * ts) / V->ch;
       X = x * ts - (col * V->cw);
       Y = y * ts - (row * V->ch);
-      index = x * V->B->my + y;
+      index = x * V->B->vty + y;
       bufferClearImage(index + 1);
       if ((tx < V->mx) && (ty < V->my)) {
         bufferLoadImage(V->S->osr, l, tx, ty, ts, V->S->downsamples[l],
@@ -144,7 +154,7 @@ void viewerRender(ViewerState *V) {
         // V->B->ll[index] = l;
         // V->B->xx[index] = tx;
         // V->B->yy[index] = ty;
-        bufferProvisionImage(index + 1, ts, ts, V->B->bufs[index]);
+        bufferProvisionImage(index + 1, ts, ts, V->B->bufs[index], V->B->buf64);
         bufferDisplayImage(index + 1, row, col, X, Y, -1);
       }
     }
