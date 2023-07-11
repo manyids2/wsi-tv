@@ -38,3 +38,7 @@ void viewerMoveLeft(ViewerState *V);
 void viewerMoveRight(ViewerState *V);
 void viewerMoveUp(ViewerState *V);
 void viewerMoveDown(ViewerState *V);
+
+void viewerSetBuffer(ViewerState *V, int index, int tx, int ty, int ts);
+void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int x,
+                            int y);

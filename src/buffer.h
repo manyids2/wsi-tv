@@ -27,12 +27,14 @@ typedef struct BufferState {
   int vtx, vty, ts;    // size in x, y; tile size
   uint32_t **bufs;     // pointers to actual buffers
   uint8_t *buf64;      // pointers to base64 encoded buffers
-  int ll[MAX_BUFFERS]; // level, x, y of tile
-  int xx[MAX_BUFFERS];
-  int yy[MAX_BUFFERS];
+  int ll[MAX_BUFFERS]; // level in slide
+  int wx[MAX_BUFFERS]; // position in slide
+  int wy[MAX_BUFFERS];
+  int owx[MAX_BUFFERS]; // needed for swapping
+  int owy[MAX_BUFFERS];
+  int vx[MAX_BUFFERS]; // position in view
+  int vy[MAX_BUFFERS];
   int ii[MAX_BUFFERS]; // kitty index of tile
-  int ix[MAX_BUFFERS]; // position in grid
-  int iy[MAX_BUFFERS];
 } BufferState;
 
 void bufferInit(BufferState *B, int vtx, int vty, int ts);

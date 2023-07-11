@@ -65,10 +65,11 @@ void viewerInit(ViewerState *V) {
   V->ch = (int)V->vh / V->rows;
 
   // Store current l, x, y, world, view
-  V->l = V->S->level_count - 1; // Lowest zoom
-  V->x = 0;                     // Starting tile
-  V->y = 0;                     //  at top left corner
-  //
+  // V->l = V->S->level_count - 1; // Lowest zoom
+  V->l = 0; // Highest zoom
+  V->x = 0; // Starting tile
+  V->y = 0; //  at top left corner
+
   V->ol = 0; // Lowest zoom
   V->ox = 0; // Starting tile
   V->oy = 0; //  at top left corner
@@ -114,6 +115,8 @@ void viewerInit(ViewerState *V) {
                       V->S->downsamples[V->l], V->B->bufs[index]);
       bufferProvisionImage(index + 1, V->ts, V->ts, V->B->bufs[index],
                            V->B->buf64);
+      // Here offset is 0, so just put tx = x and ty = y
+      viewerSetBufferIndices(V, index, x, y, x, y);
     }
   }
 
@@ -145,21 +148,28 @@ void viewerResetLevel(ViewerState *V) {
 
 void viewerRender(ViewerState *V) {
   // Put tile in first buffer
-  int ix, iy, row, col, X, Y, index;
+  int ii, vx, vy, row, col, X, Y, index;
   int ts = V->ts;
 
   // Put tile in buffer
   for (int x = 0; x < V->B->vtx; x++) {
     for (int y = 0; y < V->B->vty; y++) {
-      index = x * V->B->vty + y;
-      ix = V->B->ix[index];
-      iy = V->B->iy[index];
-      col = (ix * ts) / V->cw;
-      row = (iy * ts) / V->ch;
-      X = ix * ts - (col * V->cw);
-      Y = iy * ts - (row * V->ch);
-      bufferClearImage(index + 1);
-      bufferDisplayImage(index + 1, row, col, X, Y, -1);
+      index = x * V->B->vty + y; // random tile
+      vx = V->B->vx[index];      // expected position in view
+      vy = V->B->vy[index];
+      ii = V->B->ii[index]; // expected kitty id
+
+      // compute params to send to kitty
+      col = (vx * ts) / V->cw;
+      row = (vy * ts) / V->ch;
+      X = vx * ts - (col * V->cw);
+      Y = vy * ts - (row * V->ch);
+
+      // clear prev tile
+      bufferClearImage(ii);
+
+      // put current tile with kitty id at position in view
+      bufferDisplayImage(ii, row, col, X, Y, -1);
     }
   }
 }
@@ -286,121 +296,127 @@ void viewerProcessKeypress(ViewerState *V) {
   }
 }
 
-void viewerSetBuffer(ViewerState *V, int index, int tx, int ty, int ts, int x,
-                     int y) {
+void viewerSetBuffer(ViewerState *V, int index, int tx, int ty, int ts) {
   // load right tile into left's index
   bufferLoadImage(V->S->osr, V->l, tx, ty, ts, V->S->downsamples[V->l],
                   V->B->bufs[index]);
   bufferProvisionImage(index + 1, ts, ts, V->B->bufs[index], V->B->buf64);
-
-  // record l, x, y, kitty id at buffer position index
-  V->B->ll[index] = V->l;
-  V->B->xx[index] = tx;
-  V->B->yy[index] = ty;
-  V->B->ii[index] = index + 1;
-  V->B->ix[index] = x;
-  V->B->iy[index] = y;
 }
 
 void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int x,
                             int y) {
-  V->B->ll[index] = V->l;
-  V->B->xx[index] = tx;
-  V->B->yy[index] = ty;
-  V->B->ii[index] = index + 1;
-  V->B->ix[index] = x;
-  V->B->iy[index] = y;
+  V->B->ll[index] = V->l; // level of tile
+  V->B->wx[index] = tx;   // pos of tile in slide
+  V->B->wy[index] = ty;
+  V->B->ii[index] = index + 1; // kitty index
+  V->B->vx[index] = x;         // pos of tile in view
+  V->B->vy[index] = y;
+}
+
+void viewerMoveRight(ViewerState *V) {
+  // Load new tiles into right column
+  int tx, ty, x, y;
+  int ts = V->B->ts;
+  int roright = V->x + V->B->vtx; // right of right column
+  int left = V->x;                // left column
+  // iterate over tiles to find and replace
+  for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
+    tx = V->B->wx[b];
+    ty = V->B->wy[b];
+    if (tx == left) {
+      // replace left with right of right
+      viewerSetBuffer(V, b, roright, ty, ts);
+
+      // display on right column
+      x = V->B->vtx - 1;
+      y = V->B->vy[b];
+      viewerSetBufferIndices(V, b, roright, ty, x, y);
+    } else {
+      // shift to left
+      x = V->B->vx[b] - 1;
+      y = V->B->vy[b];
+      viewerSetBufferIndices(V, b, tx, ty, x, y);
+    }
+  }
 }
 
 void viewerMoveLeft(ViewerState *V) {
   // Load new tiles into right column
-  int index, ty;
-  int x = V->B->vtx - 1; // right column
+  int tx, ty, x, y;
   int ts = V->B->ts;
-  int tx = V->x - 1; // before left tile
-  // iterate over rows
-  for (int y = 0; y < V->B->vty; y++) {
-    index = x * V->B->vty + y; // right tile
-    ty = V->y + y;
-    viewerSetBuffer(V, index, tx, ty, ts, x, y);
-  }
-  // shift the rest
-  for (x = 0; x < V->B->vtx - 1; x++) {
-    for (int y = 0; y < V->B->vty; y++) {
-      index = x * V->B->vty + y;
-      tx = V->x + x;
-      ty = V->y + y;
-      viewerSetBufferIndices(V, index, tx, ty, x + 1, y);
-    }
-  }
-}
+  int right = V->x + V->B->vtx - 1; // right column
+  int loleft = V->x - 1;            // left of left column
+  // iterate over tiles to find and replace
+  for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
+    tx = V->B->wx[b];
+    ty = V->B->wy[b];
+    if (tx == right) {
+      // replace right with left of left
+      viewerSetBuffer(V, b, loleft, ty, ts);
 
-void viewerMoveRight(ViewerState *V) {
-  // Load new tiles into left column
-  int index, ty;
-  int x = 0; // left column
-  int ts = V->B->ts;
-  int tx = V->x + V->B->vtx; // After right tile
-  // iterate over rows
-  for (int y = 0; y < V->B->vty; y++) {
-    index = x * V->B->vty + y; // left tile
-    ty = V->y + y;
-    viewerSetBuffer(V, index, tx, ty, ts, x, y);
-  }
-  // shift the rest
-  for (x = 1; x < V->B->vtx; x++) {
-    for (int y = 0; y < V->B->vty; y++) {
-      index = x * V->B->vty + y;
-      tx = V->x + x;
-      ty = V->y + y;
-      viewerSetBufferIndices(V, index, tx, ty, x - 1, y);
-    }
-  }
-}
-
-void viewerMoveUp(ViewerState *V) {
-  // Load new tiles into bottom row
-  int index, tx;
-  int y = V->B->vty - 1; // bottom row
-  int ts = V->B->ts;
-  int ty = V->y - 1; // above up tile
-  // iterate over rows
-  for (int x = 0; x < V->B->vtx; x++) {
-    index = x * V->B->vty + y; // bottom tile
-    tx = V->x + x;
-    viewerSetBuffer(V, index, tx, ty, ts, x, y);
-  }
-  // shift the rest
-  for (int x = 0; x < V->B->vtx; x++) {
-    for (y = 0; y < V->B->vty - 1; y++) {
-      index = x * V->B->vty + y;
-      tx = V->x + x;
-      ty = V->y + y;
-      viewerSetBufferIndices(V, index, tx, ty, x, y - 1);
+      // display on left column
+      x = 0;
+      y = V->B->vy[b];
+      viewerSetBufferIndices(V, b, loleft, ty, x, y);
+    } else {
+      // shift to right
+      x = V->B->vx[b] + 1;
+      y = V->B->vy[b];
+      viewerSetBufferIndices(V, b, tx, ty, x, y);
     }
   }
 }
 
 void viewerMoveDown(ViewerState *V) {
-  // Load new tiles into up row
-  int index, tx;
-  int y = 0; // up row
+  // Load new tiles into top row
+  int tx, ty, x, y;
   int ts = V->B->ts;
-  int ty = V->y + V->B->vty; // below bottom tile
-  // iterate over rows
-  for (int x = 0; x < V->B->vtx; x++) {
-    index = x * V->B->vty + y; // up tile
-    tx = V->x + x;
-    viewerSetBuffer(V, index, tx, ty, ts, x, y);
-  }
+  int bobot = V->y + V->B->vty; // bottom of bottom row
+  int top = V->y;               // top row
+  // iterate over tiles to find and replace
+  for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
+    tx = V->B->wx[b];
+    ty = V->B->wy[b];
+    if (ty == top) {
+      // replace top with bottom of bottom
+      viewerSetBuffer(V, b, tx, bobot, ts);
 
-  // shift the rest
-  for (int x = 0; x < V->B->vtx; x++) {
-    for (y = 1; y < V->B->vty; y++) {
-      index = x * V->B->vty + y;
-      tx = V->x + x;
-      ty = V->y + y;
-      viewerSetBufferIndices(V, index, tx, ty, x, y + 1);
+      // display on bottom row
+      x = V->B->vx[b];
+      y = V->B->vty - 1;
+      viewerSetBufferIndices(V, b, tx, bobot, x, y);
+    } else {
+      // shift up
+      x = V->B->vx[b];
+      y = V->B->vy[b] - 1;
+      viewerSetBufferIndices(V, b, tx, ty, x, y);
+    }
+  }
+}
+
+void viewerMoveUp(ViewerState *V) {
+  // Load new tiles into top row
+  int tx, ty, x, y;
+  int ts = V->B->ts;
+  int bot = V->y + V->B->vty - 1; // bottom row
+  int totop = V->y - 1;           // top of top row
+  // iterate over tiles to find and replace
+  for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
+    tx = V->B->wx[b];
+    ty = V->B->wy[b];
+    if (ty == bot) {
+      // replace bottom with top of top
+      viewerSetBuffer(V, b, tx, totop, ts);
+
+      // display on top row
+      x = V->B->vx[b];
+      y = 0;
+      viewerSetBufferIndices(V, b, tx, totop, x, y);
+    } else {
+      // shift down
+      x = V->B->vx[b];
+      y = V->B->vy[b] + 1;
+      viewerSetBufferIndices(V, b, tx, ty, x, y);
     }
   }
 }
