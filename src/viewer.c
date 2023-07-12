@@ -65,8 +65,8 @@ void viewerInit(ViewerState *V) {
   V->ch = (int)V->vh / V->rows;
 
   // Store current l, x, y, world, view
-  // V->l = V->S->level_count - 1; // Lowest zoom
-  V->l = 0; // Highest zoom
+  V->l = V->S->level_count - 1; // Lowest zoom
+  // V->l = 0; // Highest zoom
   V->x = 0; // Starting tile
   V->y = 0; //  at top left corner
 
@@ -195,7 +195,7 @@ void viewerRefreshScreen(ViewerState *V) {
   abAppend(&ab, "\x1b[?25l", 6);
 
   // Print debug info
-  viewerPrintDebug(V, &ab);
+  // viewerPrintDebug(V, &ab);
 
   // Finally write out
   write(STDOUT_FILENO, ab.b, ab.len);
@@ -254,6 +254,7 @@ void viewerHandleKeypress(ViewerState *V, int key) {
       V->ol = V->l;
       V->l = newval;
       viewerResetLevel(V);
+      viewerZoomIn(V);
       V->dirty = 1;
     }
     break;
@@ -263,6 +264,7 @@ void viewerHandleKeypress(ViewerState *V, int key) {
       V->ol = V->l;
       V->l = newval;
       viewerResetLevel(V);
+      viewerZoomOut(V);
       V->dirty = 1;
     }
     break;
@@ -322,6 +324,7 @@ void viewerMoveRight(ViewerState *V) {
   // Load new tiles into right column
   int tx, ty, x, y;
   int ts = V->B->ts;
+  // using `ox` instead of `x` to get x from frame before refresh
   int roright = V->ox + V->B->vtx; // right of right column
   int left = V->ox;                // left column
   // iterate over tiles to find and replace
@@ -349,6 +352,7 @@ void viewerMoveLeft(ViewerState *V) {
   // Load new tiles into right column
   int tx, ty, x, y;
   int ts = V->B->ts;
+  // using `ox` instead of `x` to get x from frame before refresh
   int right = V->ox + V->B->vtx - 1; // right column
   int loleft = V->ox - 1;            // left of left column
   // iterate over tiles to find and replace
@@ -376,6 +380,7 @@ void viewerMoveDown(ViewerState *V) {
   // Load new tiles into top row
   int tx, ty, x, y;
   int ts = V->B->ts;
+  // using `oy` instead of `y` to get y from frame before refresh
   int bobot = V->oy + V->B->vty; // bottom of bottom row
   int top = V->oy;               // top row
   // iterate over tiles to find and replace
@@ -403,6 +408,7 @@ void viewerMoveUp(ViewerState *V) {
   // Load new tiles into top row
   int tx, ty, x, y;
   int ts = V->B->ts;
+  // using `oy` instead of `y` to get y from frame before refresh
   int bot = V->oy + V->B->vty - 1; // bottom row
   int totop = V->oy - 1;           // top of top row
   // iterate over tiles to find and replace
@@ -422,6 +428,38 @@ void viewerMoveUp(ViewerState *V) {
       x = V->B->vx[b];
       y = V->B->vy[b] + 1;
       viewerSetBufferIndices(V, b, tx, ty, x, y);
+    }
+  }
+}
+
+void viewerZoomIn(ViewerState *V) {
+  // Load new tiles everywhere
+  int tx, ty, ts, x, y, b;
+  ts = V->B->ts;
+  tx = V->x;
+  ty = V->y;
+  // iterate over buffers and replace
+  for (x = 0; x < V->B->vtx; x++) {
+    for (y = 0; y < V->B->vty; y++) {
+      b = x * V->B->vty + y;
+      viewerSetBuffer(V, b, tx + x, ty + y, ts);
+      viewerSetBufferIndices(V, b, tx + x, ty + y, x, y);
+    }
+  }
+}
+
+void viewerZoomOut(ViewerState *V) {
+  // Load new tiles everywhere
+  int tx, ty, ts, x, y, b;
+  ts = V->B->ts;
+  tx = V->x;
+  ty = V->y;
+  // iterate over buffers and replace
+  for (x = 0; x < V->B->vtx; x++) {
+    for (y = 0; y < V->B->vty; y++) {
+      b = x * V->B->vty + y;
+      viewerSetBuffer(V, b, tx + x, ty + y, ts);
+      viewerSetBufferIndices(V, b, tx + x, ty + y, x, y);
     }
   }
 }
