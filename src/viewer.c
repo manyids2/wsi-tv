@@ -1,4 +1,6 @@
 #include "viewer.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void viewerFree(ViewerState *V) {
   // nothing to free yet
@@ -51,14 +53,48 @@ void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
   abAppend(ab, s, len);
 }
 
+void slice(const char *str, char *result, size_t start, size_t end) {
+  strncpy(result, str + start, end - start);
+}
+
 void viewerInit(ViewerState *V) {
   // Clear screen
   write(STDOUT_FILENO, "\x1b[2J", 4);
   write(STDOUT_FILENO, "\x1b[H", 3);
 
-  // Read window size
+  // Read window size using IOCTL -> over ssh, vw, vh fail
   if (getWindowSize(&V->rows, &V->cols, &V->vw, &V->vh) == -1)
     die("getWindowSize");
+
+  // Read window size using kitty
+  {
+    write(STDOUT_FILENO, "\x1b[14t", 5);
+
+    // Read response
+    char str[16];
+    int ch, n = 0;
+    int p1 = -1;
+    int p2 = -1;
+    while (1) {
+      ch = getKeypress();
+      str[n] = ch;
+      if (ch == 't') {
+        break;
+      }
+      if (ch == ';') {
+        p1 == -1 ? (p1 = n) : (p2 = n);
+      }
+      n++;
+    }
+
+    // Parse height and width
+    char str_w[10];
+    char str_h[10];
+    slice(str, str_h, p1 + 1, p2);
+    slice(str, str_w, p2 + 1, n);
+    V->vw = atoi(str_w);
+    V->vh = atoi(str_h);
+  }
 
   // Compute cell size
   V->cw = (int)V->vw / V->cols;
