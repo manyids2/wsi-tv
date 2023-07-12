@@ -75,8 +75,26 @@ void bufferFree(BufferState *B) {
 static const uint8_t base64enc_tab[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-int base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
+int custom_base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
                          char *out) {
+  // We receive RGBA
+  if (in_len % 4 != 0) {
+    die("Unexpected in_len");
+  }
+
+  // Iterate and encode
+  uint32_t pixel;
+  uint8_t u1, u2, u3;
+  int total_pixels = in_len / 4;
+  for (int i = 0; i < total_pixels; i++) {
+    pixel = in[i * 4]; // 32 bits
+    // TODO: c bit manipulation
+  }
+
+  return 1;
+}
+
+int base64_encode(size_t in_len, const uint8_t *in, size_t out_len, char *out) {
   size_t ii, io;
   uint_least32_t v;
   size_t rem;
@@ -122,7 +140,6 @@ void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
                           uint8_t *buf64) {
   int total_size = w * h * sizeof(uint32_t);
   size_t base64_size = ((total_size + 2) / 3) * 4;
-  // uint8_t *base64_pixels = (uint8_t *)malloc(base64_size + 1);
 
   /* base64 encode the data */
   int ret =
@@ -133,13 +150,14 @@ void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
   }
 
   /*
-   * write kitty protocol RGBA image in chunks no greater than 4096 bytes
+   * Switch to RGB to get gains on base64 encoding
    *
-   * <ESC>_Gf=32,s=<w>,v=<h>,m=1;<encoded pixel data first chunk><ESC>\
+   * <ESC>_Gf=24,s=<w>,v=<h>,m=1;<encoded pixel data first chunk><ESC>\
    * <ESC>_Gm=1;<encoded pixel data second chunk><ESC>\
    * <ESC>_Gm=0;<encoded pixel data last chunk><ESC>\
    */
 
+  // TODO: make RGB instead of RGBA
   size_t sent_bytes = 0;
   while (sent_bytes < base64_size) {
     size_t chunk_size =
@@ -156,8 +174,6 @@ void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
     sent_bytes += chunk_size;
   }
   fflush(stdout);
-
-  // free(base64_pixels);
 }
 
 void bufferDisplayImage(int index, int row, int col, int X, int Y, int Z) {
