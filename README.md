@@ -32,3 +32,28 @@ make
 - Needs terminal support for [kitty image protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
 
 ## Program structure
+
+## Optimization
+
+```
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+100.12      0.14     0.14      312     0.45     0.45  base64_encode
+  0.00      0.14     0.00     1396     0.00     0.00  bufferDisplayImage
+  0.00      0.14     0.00     1396     0.00     0.00  moveCursor
+  0.00      0.14     0.00     1395     0.00     0.00  bufferClearImage
+  0.00      0.14     0.00      312     0.00     0.45  bufferProvisionImage
+  0.00      0.14     0.00      311     0.00     0.00  bufferLoadImage
+  0.00      0.14     0.00       93     0.00     0.00  abAppend
+  0.00      0.14     0.00       44     0.00     0.00  getKeypress
+  0.00      0.14     0.00       31     0.00     0.00  abFree
+  0.00      0.14     0.00       31     0.00     0.00  viewerRender
+  0.00      0.14     0.00       13     0.00     2.25  viewerMoveRight
+  0.00      0.14     0.00        9     0.00     4.04  viewerMoveDown
+  0.00      0.14     0.00        6     0.00     2.25  viewerMoveLeft
+  0.00      0.14     0.00        2     0.00    20.22  viewerZoomIn
+  0.00      0.14     0.00        1     0.00     0.00  bufferInit
+  0.00      0.14     0.00        1     0.00     0.00  getWindowSize
+  0.00      0.14     0.00        1     0.00     0.00  slideInit
+```

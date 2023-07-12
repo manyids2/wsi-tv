@@ -75,7 +75,7 @@ void bufferFree(BufferState *B) {
 static const uint8_t base64enc_tab[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static int base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
+int base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
                          char *out) {
   size_t ii, io;
   uint_least32_t v;
