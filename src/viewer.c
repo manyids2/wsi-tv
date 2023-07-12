@@ -322,8 +322,8 @@ void viewerMoveRight(ViewerState *V) {
   // Load new tiles into right column
   int tx, ty, x, y;
   int ts = V->B->ts;
-  int roright = V->x + V->B->vtx; // right of right column
-  int left = V->x;                // left column
+  int roright = V->ox + V->B->vtx; // right of right column
+  int left = V->ox;                // left column
   // iterate over tiles to find and replace
   for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
     tx = V->B->owx[b];
@@ -349,8 +349,8 @@ void viewerMoveLeft(ViewerState *V) {
   // Load new tiles into right column
   int tx, ty, x, y;
   int ts = V->B->ts;
-  int right = V->x + V->B->vtx - 1; // right column
-  int loleft = V->x - 1;            // left of left column
+  int right = V->ox + V->B->vtx - 1; // right column
+  int loleft = V->ox - 1;            // left of left column
   // iterate over tiles to find and replace
   for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
     tx = V->B->owx[b];
@@ -376,8 +376,8 @@ void viewerMoveDown(ViewerState *V) {
   // Load new tiles into top row
   int tx, ty, x, y;
   int ts = V->B->ts;
-  int bobot = V->y + V->B->vty; // bottom of bottom row
-  int top = V->y;               // top row
+  int bobot = V->oy + V->B->vty; // bottom of bottom row
+  int top = V->oy;               // top row
   // iterate over tiles to find and replace
   for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
     tx = V->B->owx[b];
@@ -403,8 +403,8 @@ void viewerMoveUp(ViewerState *V) {
   // Load new tiles into top row
   int tx, ty, x, y;
   int ts = V->B->ts;
-  int bot = V->y + V->B->vty - 1; // bottom row
-  int totop = V->y - 1;           // top of top row
+  int bot = V->oy + V->B->vty - 1; // bottom row
+  int totop = V->oy - 1;           // top of top row
   // iterate over tiles to find and replace
   for (int b = 0; b < V->B->vtx * V->B->vty; b++) {
     tx = V->B->owx[b];
