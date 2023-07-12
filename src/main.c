@@ -18,15 +18,11 @@ int main(int argc, char **argv) {
   // Get path to slide
   char *slide = argv[1];
 
-  // Open slide, read slide props like level, dims
-  // ( before viewerInit as we want to exit early if error )
-  slideInit(V.S, slide);
-
   // Setup terminal ( disableRawMode called on exit )
   enableRawMode();
 
   // Start viewer
-  viewerInit(&V);
+  viewerInit(&V, slide);
 
   // Main loop
   while (1) {
@@ -35,7 +31,6 @@ int main(int argc, char **argv) {
   }
 
   // Free all resources
-  slideFree(V.S);
   viewerFree(&V);
 
   return 0;

@@ -3,9 +3,8 @@
 #include <stdlib.h>
 
 void viewerFree(ViewerState *V) {
-  // nothing to free yet
-  //
   bufferFree(V->B);
+  slideFree(V->S);
 }
 
 void viewerPrintDebug(ViewerState *V, struct abuf *ab) {
@@ -57,10 +56,13 @@ void slice(const char *str, char *result, size_t start, size_t end) {
   strncpy(result, str + start, end - start);
 }
 
-void viewerInit(ViewerState *V) {
+void viewerInit(ViewerState *V, char *slide) {
   // Clear screen
   write(STDOUT_FILENO, "\x1b[2J", 4);
   write(STDOUT_FILENO, "\x1b[H", 3);
+
+  // Open slide, read slide props like level, dims
+  slideInit(V->S, slide);
 
   // Read window size using IOCTL -> over ssh, vw, vh fail
   if (getWindowSize(&V->rows, &V->cols, &V->vw, &V->vh) == -1)

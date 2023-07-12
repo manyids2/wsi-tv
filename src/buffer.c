@@ -33,6 +33,9 @@ void bufferInit(BufferState *B, int vtx, int vty, int ts) {
   // Put 0s in all buffers
   B->bufs = calloc(max_buffers, sizeof(int *));
 
+  // Allocate memory for base64 encoded data
+  B->buf64 = (uint8_t *)malloc(base64_size + 1);
+
   // Initialize values, memory at each tile position
   int index;
   for (int x = 0; x < vtx; x++) {
@@ -56,18 +59,16 @@ void bufferInit(BufferState *B, int vtx, int vty, int ts) {
 
       // Allocate memory for one tile
       B->bufs[index] = malloc(B->ts * B->ts * sizeof(uint32_t));
-
-      // Allocate memory for base64 encoded data
-      B->buf64 = (uint8_t *)malloc(base64_size + 1);
     }
   }
 }
 
 void bufferFree(BufferState *B) {
+  free(B->buf64);
   for (int i = 0; i < B->vtx * B->vty; i++) {
     free(&B->bufs[i]);
-    free(B->buf64);
   }
+  free(B->bufs);
 }
 
 // --- kitty related ---

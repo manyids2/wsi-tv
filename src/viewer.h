@@ -22,7 +22,7 @@ typedef struct ViewerState {
   BufferState *B; // struct with current buffers
 } ViewerState;
 
-void viewerInit(ViewerState *V);
+void viewerInit(ViewerState *V, char *slide);
 void viewerFree(ViewerState *V);
 
 void viewerRender(ViewerState *V);
