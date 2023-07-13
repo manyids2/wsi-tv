@@ -23,7 +23,8 @@ void bufferInit(BufferState *B, int vtx, int vty, int ts) {
 
   // Compute buffer and base64 encoded size
   int total_size = B->ts * B->ts * sizeof(uint32_t);
-  size_t base64_size = ((total_size + 2) / 3) * 4;
+  // size_t base64_size = ((total_size + 2) / 3) * 4;
+  size_t base64_size = total_size;
 
   // Allocate memory for pointers to buffers
   int max_buffers = vtx * vty;
@@ -72,26 +73,33 @@ void bufferFree(BufferState *B) {
 }
 
 // --- kitty related ---
+// 26 + 26 + 10 + 2 = 64
 static const uint8_t base64enc_tab[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-int custom_base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
-                         char *out) {
-  // We receive RGBA
-  if (in_len % 4 != 0) {
-    die("Unexpected in_len");
-  }
-
-  // Iterate and encode
+void custom_base64_encode(size_t in_len, const uint8_t *in, char *out) {
+  // We receive RGBA pixel ( 32 bits )
   uint32_t pixel;
-  uint8_t u1, u2, u3;
+  uint8_t u1, u2, u3, u4;
   int total_pixels = in_len / 4;
   for (int i = 0; i < total_pixels; i++) {
-    pixel = in[i * 4]; // 32 bits
-    // TODO: c bit manipulation
-  }
+    pixel = (uint32_t)in[i * 4]; // 32 bits
+    // c bit manipulation
+    // 8 * 4 : xxxxxx xx.xxxx xxxx.xx xxxxxx xxxxxxxx ->
+    // 6 * 4 : yyyyyy yyyyyy  yyyyyy  yyyyyy --------
+    u1 = (pixel >> 0) & 0x3F; // mask till 6 bits
+    u2 = (pixel >> (0 + 6)) & 0x3F;
+    u3 = (pixel >> (0 + 12)) & 0x3F;
+    u4 = (pixel >> (0 + 18)) & 0x3F;
 
-  return 1;
+    // Write it to out buffer
+    out[i * 4] = base64enc_tab[u1];
+    out[i * 4 + 1] = base64enc_tab[u2];
+    out[i * 4 + 2] = base64enc_tab[u3];
+    out[i * 4 + 3] = base64enc_tab[u4];
+  }
+  // null terminator
+  out[in_len] = 0;
 }
 
 int base64_encode(size_t in_len, const uint8_t *in, size_t out_len, char *out) {
@@ -139,15 +147,20 @@ void bufferLoadImage(openslide_t *osr, int l, int tx, int ty, int ts,
 void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
                           uint8_t *buf64) {
   int total_size = w * h * sizeof(uint32_t);
-  size_t base64_size = ((total_size + 2) / 3) * 4;
+  // size_t base64_size = ((total_size + 2) / 3) * 4;
+  size_t base64_size = total_size;
 
   /* base64 encode the data */
-  int ret =
-      base64_encode(total_size, (uint8_t *)buf, base64_size + 1, (char *)buf64);
-  if (ret < 0) {
-    fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
-    exit(1);
-  }
+  // int ret =
+  //     base64_encode(total_size, (uint8_t *)buf, base64_size + 1, (char
+  //     *)buf64);
+  //
+  // if (ret < 0) {
+  //   fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
+  //   exit(1);
+  // }
+
+  custom_base64_encode(total_size, (uint8_t *)buf, (char *)buf64);
 
   /*
    * Switch to RGB to get gains on base64 encoding
@@ -164,7 +177,7 @@ void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
         base64_size - sent_bytes < CHUNK ? base64_size - sent_bytes : CHUNK;
     int cont = !!(sent_bytes + chunk_size < base64_size);
     if (sent_bytes == 0) {
-      fprintf(stdout, "\x1B_Gt=d,f=32,q=2,i=%u,s=%d,v=%d,m=%d%s;", index, w, h,
+      fprintf(stdout, "\x1B_Gt=d,f=24,q=2,i=%u,s=%d,v=%d,m=%d%s;", index, w, h,
               cont, COMPRESSION_STRING);
     } else {
       fprintf(stdout, "\x1B_Gm=%d;", cont);

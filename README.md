@@ -57,3 +57,26 @@ Each sample counts as 0.01 seconds.
   0.00      0.14     0.00        1     0.00     0.00  getWindowSize
   0.00      0.14     0.00        1     0.00     0.00  slideInit
 ```
+
+```
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+100.12      0.02     0.02      288     0.07     0.07  bufferProvisionImage
+  0.00      0.02     0.00      662     0.00     0.00  moveCursor
+  0.00      0.02     0.00      661     0.00     0.00  bufferDisplayImage
+  0.00      0.02     0.00      660     0.00     0.00  bufferClearImage
+  0.00      0.02     0.00      287     0.00     0.00  bufferLoadImage
+  0.00      0.02     0.00       99     0.00     0.00  abAppend
+  0.00      0.02     0.00       49     0.00     0.00  getKeypress
+  0.00      0.02     0.00       33     0.00     0.00  abFree
+  0.00      0.02     0.00       33     0.00     0.00  viewerRender
+  0.00      0.02     0.00       11     0.00     0.28  viewerMoveDown
+  0.00      0.02     0.00        9     0.00     0.35  viewerMoveRight
+  0.00      0.02     0.00        8     0.00     1.39  viewerZoomIn
+  0.00      0.02     0.00        2     0.00     0.35  viewerMoveLeft
+  0.00      0.02     0.00        2     0.00     0.28  viewerMoveUp
+  0.00      0.02     0.00        1     0.00     0.00  bufferInit
+  0.00      0.02     0.00        1     0.00     0.00  getWindowSize
+  0.00      0.02     0.00        1     0.00     0.00  slideInit
+```

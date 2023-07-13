@@ -48,3 +48,7 @@ void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
 void bufferDisplayImage(int index, int row, int col, int X, int Y, int Z);
 void bufferClearImage(int index);
 void bufferDeleteImage(int index);
+
+// base64
+void custom_base64_encode(size_t in_len, const uint8_t *in, char *out);
+int base64_encode(size_t in_len, const uint8_t *in, size_t out_len, char *out);
