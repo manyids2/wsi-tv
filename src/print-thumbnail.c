@@ -1,15 +1,130 @@
+#include <asm-generic/errno-base.h>
 #include <assert.h>
+#include <errno.h>
 #include <openslide/openslide.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
 #define CHUNK 4096 // for kitty
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define KITTY_ID 1
+
+struct termios orig_termios;
+
+static void die(const char *s) {
+  perror(s);
+  exit(1);
+}
+
+void disableRawMode(void) {
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+    die("tcsetattr");
+
+  // show cursor
+  write(STDOUT_FILENO, "\x1b[?25h", 6);
+}
+
+void enableRawMode(void) {
+  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+    die("tcgetattr");
+  atexit(disableRawMode); // Then is always called on exit
+  struct termios raw = orig_termios;
+  raw.c_iflag &= ~(ICRNL | IXON);
+  raw.c_oflag &= ~(OPOST);
+  raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+  raw.c_cc[VMIN] = 1;
+  raw.c_cc[VTIME] = 0; // NOTE: blocking, allows only single character input
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+    die("tcsetattr");
+}
+
+void move_cursor(int row, int col) {
+  char s[32]; // giri giri
+  int len = snprintf(s, sizeof(s), "\x1b[%d;%dH", row, col);
+  write(STDOUT_FILENO, s, len);
+}
+
+void slice(const char *str, char *result, size_t start, size_t end) {
+  strncpy(result, str + start, end - start);
+}
+
+int getKeypress(void) {
+  int nread;
+  char c;
+  while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+    if (nread == -1 && errno != EAGAIN)
+      die("read");
+  }
+
+  if (c == '\x1b') {
+    char seq[3];
+
+    if (read(STDIN_FILENO, &seq[0], 1) != 1)
+      return '\x1b';
+    if (read(STDIN_FILENO, &seq[1], 1) != 1)
+      return '\x1b';
+
+    return '\x1b';
+  } else {
+    return c;
+  }
+}
+
+static void get_window_size(int *rows, int *cols, int *vw, int *vh) {
+  struct winsize ws;
+  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1)
+    die("ioctl(fd, TIOCGWINSZ, &ws) failed.");
+
+  if (ws.ws_col == 0)
+    die("Unsupported terminal.");
+
+  *cols = ws.ws_col;
+  *rows = ws.ws_row;
+  *vw = ws.ws_xpixel;
+  *vh = ws.ws_ypixel;
+}
+
+static void get_window_size_kitty(int *vw, int *vh) {
+  // Read window size using kitty
+  write(STDOUT_FILENO, "\x1b[14t", 5);
+
+  // Read response
+  char str[16];
+  int ch, n = 0;
+  int p1 = -1;
+  int p2 = -1;
+  while (1) {
+    ch = getKeypress();
+    str[n] = ch;
+    if (ch == 't') {
+      break;
+    }
+    if (ch == ';') {
+      p1 == -1 ? (p1 = n) : (p2 = n);
+    }
+    n++;
+  }
+
+  // Parse height and width
+  char str_w[10];
+  char str_h[10];
+  slice(str, str_h, p1 + 1, p2);
+  slice(str, str_w, p2 + 1, n);
+  *vw = atoi(str_w);
+  *vh = atoi(str_h);
+}
+
+void set_cursor(int row, int col) {
+  char s[32]; // giri giri
+  int len = snprintf(s, sizeof(s), "\x1b[%d;%dH", row, col);
+  write(STDOUT_FILENO, s, len);
+}
 
 static const uint8_t base64enc_tab[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -42,7 +157,7 @@ static void base64_encode(size_t num_pixels, const uint32_t *in, uint8_t *out) {
   out[num_pixels * 4] = 0;
 }
 
-static void print_thumbnail(int w, int h, uint32_t *buf, uint8_t *buf64) {
+static void provision_thumbnail(int w, int h, uint32_t *buf, uint8_t *buf64) {
   size_t num_pixels = w * h;
   size_t total_size = num_pixels * sizeof(uint32_t);
   size_t base64_size = total_size + 1;
@@ -66,18 +181,25 @@ static void print_thumbnail(int w, int h, uint32_t *buf, uint8_t *buf64) {
     sent_bytes += chunk_size;
   }
   fflush(stdout);
+}
 
-  // Display it
+static void print_thumbnail(int row, int col, int X, int Y) {
   char s[64];
+
+  // Move cursor to row and col
+  move_cursor(row, col);
+
+  // Show the image
   int len =
       snprintf(s, sizeof(s), "\x1b_Ga=p,i=%d,q=2,X=%d,Y=%d,C=1,z=%d;\x1b\\",
-               KITTY_ID, 0, 0, 1);
+               KITTY_ID, X, Y, 1);
   write(STDOUT_FILENO, s, len);
+}
 
-  // Compute number of lines to move
-  for (size_t i = 0; i < 20; i++) {
-    write(STDOUT_FILENO, "\n", 2);
-  }
+void delete_thumbnail(void) {
+  char s[32]; // giri giri
+  int len = snprintf(s, sizeof(s), "\x1b_Ga=d,d=I,i=%d;\x1b\\", KITTY_ID);
+  write(STDOUT_FILENO, s, len);
 }
 
 int get_thumbnail_dims(openslide_t *osr, int64_t *tw, int64_t *th) {
@@ -108,12 +230,30 @@ int get_thumbnail_dims(openslide_t *osr, int64_t *tw, int64_t *th) {
   return ret;
 }
 
+static void init_term(int *ch, int *cw) {
+  int rows, cols, vw, vh;
+
+  // Read window size using IOCTL -> over ssh, vw, vh fail, so use kitty
+  get_window_size(&rows, &cols, &vw, &vh);
+  get_window_size_kitty(&vw, &vh);
+
+  *cw = vw / cols;
+  *ch = vh / rows;
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     printf("Usage: print-thumbnail slidepath\n");
     return 1;
   }
   const char *slide = argv[1];
+
+  // Enable raw mode to read kitty response
+  enableRawMode();
+
+  // Get cell width and height for scaling
+  int cw, ch;
+  init_term(&cw, &ch);
 
   // read the slide
   openslide_t *osr = openslide_open(slide);
@@ -139,11 +279,18 @@ int main(int argc, char **argv) {
   printf("%lu, %lu : %lu\n", tw, th, total_size);
 
   // send to kitty
-  print_thumbnail(tw, th, buf, buf64);
+  provision_thumbnail(tw, th, buf, buf64);
+
+  // print
+  print_thumbnail(0, 0, 0, 0);
 
   // free
   free(buf);
   free(buf64);
   openslide_close(osr);
+
+  getKeypress();
+
+  delete_thumbnail();
   return 0;
 }
