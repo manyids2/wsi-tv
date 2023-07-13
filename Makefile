@@ -3,3 +3,6 @@ wsi-tv: Makefile src/main.c src/term.c src/term.h src/buffer.c src/buffer.h src/
 
 print-tile: src/print-tile.c
 	$(CC) src/print-tile.c -o print-tile -Wall -Wextra -pedantic -std=c99 -lopenslide -O3
+
+print-thumbnail: src/print-thumbnail.c
+	$(CC) src/print-thumbnail.c -o print-thumbnail -Wall -Wextra -pedantic -std=c99 -lopenslide -O3

@@ -152,18 +152,7 @@ void bufferLoadImage(openslide_t *osr, int l, int tx, int ty, int ts,
 void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
                           uint8_t *buf64) {
   int total_size = w * h * sizeof(uint32_t);
-  // size_t base64_size = ((total_size + 2) / 3) * 4;
   size_t base64_size = total_size;
-
-  /* base64 encode the data */
-  // int ret =
-  //     base64_encode(total_size, (uint8_t *)buf, base64_size + 1, (char
-  //     *)buf64);
-  //
-  // if (ret < 0) {
-  //   fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
-  //   exit(1);
-  // }
 
   // NOTE: Works!!
   custom_base64_encode(w * h, buf, (char *)buf64);
