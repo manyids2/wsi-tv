@@ -33,6 +33,8 @@ make
 
 ## Program structure
 
+![structure](./structure.png)
+
 ## Optimization
 
 ```
