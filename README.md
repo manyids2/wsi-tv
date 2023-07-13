@@ -37,6 +37,12 @@ make
 - Needs terminal support for [kitty image protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
 - Terminal needs to respond to `\x1b[14t` request for pixel dimensions.
 - Only tested on Linux.
+- No caching strategy, always loads new tiles in view.
+
+## Issues
+
+- tile positions are not pixel perfect
+- if it crashes, kitty needs to be reset
 
 ## Program structure
 
