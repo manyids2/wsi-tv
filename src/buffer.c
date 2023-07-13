@@ -80,6 +80,7 @@ static const uint8_t base64enc_tab[] =
 void custom_base64_encode(size_t in_len, const uint8_t *in, char *out) {
   // We receive RGBA pixel ( 32 bits )
   uint32_t pixel;
+  uint32_t new_pixel = 0x00000000;
   uint8_t u1, u2, u3, u4;
   int total_pixels = in_len / 4;
   for (int i = 0; i < total_pixels; i++) {
@@ -88,17 +89,23 @@ void custom_base64_encode(size_t in_len, const uint8_t *in, char *out) {
     // 8 * 4 : xxxxxx xx.xxxx xxxx.xx xxxxxx xxxxxxxx ->
     // 6 * 4 : yyyyyy yyyyyy  yyyyyy  yyyyyy --------
 
+    // should not do anything but it did
+    new_pixel = pixel & 0x000000FF;
+    // new_pixel = new_pixel | (pixel & 0x00FF0000);
+    // new_pixel = new_pixel | (pixel & 0x0000FF00);
+    // new_pixel = new_pixel | (pixel & 0x000000FF);
+
     // not working
-    // u1 = (uint8_t)pixel & 0xFC000000; // mask 6 bits
-    // u2 = (uint8_t)pixel & 0x03F00000;
-    // u3 = (uint8_t)pixel & 0x000FC000;
-    // u4 = (uint8_t)pixel & 0x00003F00;
+    u1 = ((new_pixel & 0xFC0000) >> 18) & 0x3F; // mask 6 bits
+    u2 = ((new_pixel & 0x03F000) >> 12) & 0x3F;
+    u3 = ((new_pixel & 0x000FC0) >> 6) & 0x3F;
+    u4 = ((new_pixel & 0x00003F) >> 0) & 0x3F;
 
     // showing red
-    u1 = (pixel >> 0) & 0x3F; // mask till 6 bits
-    u2 = (pixel >> (0 + 6)) & 0x3F;
-    u3 = (pixel >> (0 + 12)) & 0x3F;
-    u4 = (pixel >> (0 + 18)) & 0x3F;
+    // u1 = (new_pixel >> 0) & 0x3F; // mask till 6 bits
+    // u2 = (new_pixel >> 6) & 0x3F;
+    // u3 = (new_pixel >> 12) & 0x3F;
+    // u4 = (new_pixel >> 18) & 0x3F;
 
     // Write it to out buffer
     out[i * 4] = base64enc_tab[u1];

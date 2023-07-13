@@ -7,3 +7,4 @@ compile_commands.json
 print-tile
 gmon.out
 gmon.txt
+tests/test_base64
