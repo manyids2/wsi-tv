@@ -1,6 +1,6 @@
-# ssh-wsi
+# wsi-tv
 
-SSH server to serve whole slide images. Made for kitty terminal.
+Whole slide image terminal viewer. Made for [kitty](https://sw.kovidgoyal.net/kitty/) terminal.
 
 Uses custom base64 encoder that takes `RGBA` as input and encodes to base64 `RGB`.
 
