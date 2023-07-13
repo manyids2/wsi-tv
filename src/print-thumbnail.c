@@ -61,19 +61,7 @@ int getKeypress(void) {
     if (nread == -1 && errno != EAGAIN)
       die("read");
   }
-
-  if (c == '\x1b') {
-    char seq[3];
-
-    if (read(STDIN_FILENO, &seq[0], 1) != 1)
-      return '\x1b';
-    if (read(STDIN_FILENO, &seq[1], 1) != 1)
-      return '\x1b';
-
-    return '\x1b';
-  } else {
-    return c;
-  }
+  return c;
 }
 
 static void get_window_size(int *rows, int *cols, int *vw, int *vh) {
@@ -284,13 +272,15 @@ int main(int argc, char **argv) {
   // print
   print_thumbnail(0, 0, 0, 0);
 
+  // wait to dismiss
+  getKeypress();
+
+  // free up on kitty
+  delete_thumbnail();
+
   // free
   free(buf);
   free(buf64);
   openslide_close(osr);
-
-  getKeypress();
-
-  delete_thumbnail();
   return 0;
 }
