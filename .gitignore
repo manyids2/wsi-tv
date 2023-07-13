@@ -8,3 +8,4 @@ print-tile
 gmon.out
 gmon.txt
 tests/test_base64
+tests/prof.out

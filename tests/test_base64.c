@@ -3,6 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+int num_pixels = 1024 * 1024 * 32;
+size_t num_reps = 32;
+
+// definitions
+void base64_encode(size_t in_len, const uint8_t *in, size_t out_len, char *out);
+void custom_base64_encode(size_t total_pixels, const uint32_t *in, char *out);
+
+// macros
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 #define BYTE_TO_BINARY(byte)                                                   \
   ((byte)&0x80 ? '1' : '0'), ((byte)&0x40 ? '1' : '0'),                        \
@@ -15,12 +23,13 @@
 // printf("m: "BYTE_TO_BINARY_PATTERN" "BYTE_TO_BINARY_PATTERN"\n",
 //   BYTE_TO_BINARY(m>>8), BYTE_TO_BINARY(m));
 
-// 26 + 26 + 10 + 2 = 64
+// base64 encoding table ( 26 + 26 + 10 + 2 = 64 )
 static const uint8_t base64enc_tab[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static int base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
-                         char *out) {
+// from glkitty
+void base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
+                   char *out) {
   size_t ii, io;
   uint32_t v;
   size_t rem;
@@ -33,39 +42,40 @@ static int base64_encode(size_t in_len, const uint8_t *in, size_t out_len,
     while (rem >= 6) {
       rem -= 6;
       if (io >= out_len)
-        return -1; /* truncation is failure */
+        return; /* truncation is failure */
       out[io++] = base64enc_tab[(v >> rem) & 63];
     }
   }
   if (rem) {
     v <<= (6 - rem);
     if (io >= out_len)
-      return -1; /* truncation is failure */
+      return; /* truncation is failure */
     out[io++] = base64enc_tab[v & 63];
   }
   while (io & 3) {
     if (io >= out_len)
-      return -1; /* truncation is failure */
+      return; /* truncation is failure */
     out[io++] = '=';
   }
   if (io >= out_len)
-    return -1; /* no room for null terminator */
+    return; /* no room for null terminator */
   out[io] = 0;
-  return io;
+  return;
 }
 
-static void custom_base64_encode(size_t total_pixels, const uint32_t *in,
-                                 char *out) {
+// our implementation
+void custom_base64_encode(size_t total_pixels, const uint32_t *in, char *out) {
   // We receive RGBA pixel ( 32 bits )
   uint32_t pixel;
   uint8_t u1, u2, u3, u4;
   for (size_t i = 0; i < total_pixels; i++) {
     pixel = (uint32_t)in[i]; // 32 bits, 4 bytes
     // c bit manipulation
+    //            R          G        B         A
     // 8 * 4 : xxxxxx xx.xxxx xxxx.xx xxxxxx xxxxxxxx ->
     // 6 * 4 : yyyyyy yyyyyy  yyyyyy  yyyyyy --------
 
-    //      rgb -> encoded -> binary
+    //      RGB -> encoded -> binary
     // 0x000000 -> AAAA    -> 000000 000000 000000 000000
     // 0xFF0000 -> /wAA    -> 111111 110000 000000 000000
     // 0x00FF00 -> AP8A    -> 000000 001111 111100 000000
@@ -88,53 +98,51 @@ static void custom_base64_encode(size_t total_pixels, const uint32_t *in,
 }
 
 int main(void) {
-  int num_pixels = 1;
 
   printf("num_pixels : %d\n", num_pixels);
 
+  // ----------- inits ------------------
+  // malloc, so random bit values,
+  // optimizer should not do anything
+
+  // -- rgba --
   int rgba_size = num_pixels * sizeof(uint32_t);
-  uint32_t *rgba = calloc(num_pixels, sizeof(uint32_t));
-  uint8_t *rgb = calloc(num_pixels * 3, sizeof(uint8_t));
-
-  // rgba[0] = 0x00000000;
-  // (discarded) . ( ) . ( ) . ( )
-  rgba[0] = 0x0000FFFF;
-
-  rgb[0] = 0x00;
-  rgb[1] = 0xFF;
-  rgb[2] = 0xFF;
-
   size_t rgba64_size = ((rgba_size + 2) / 3) * 4;
+  uint32_t *rgba = malloc(num_pixels * sizeof(uint32_t));
   uint8_t *rgba64 = (uint8_t *)malloc(rgba64_size + 1);
 
-  int ret = base64_encode(rgba_size, (uint8_t *)rgba, rgba64_size + 1,
-                          (char *)rgba64);
-
-  if (ret < 0) {
-    fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
-    exit(1);
-  }
-
-  printf("rgba (%03lu) : %s\n", strlen((char *)rgba64), rgba64);
-
+  // -- rgb --
   int rgb_size = num_pixels * 3 * sizeof(uint8_t);
-
   size_t rgb64_size = ((rgb_size + 2) / 3) * 4;
+  uint8_t *rgb = malloc(num_pixels * 3 * sizeof(uint8_t));
   uint8_t *rgb64 = (uint8_t *)malloc(rgb64_size + 1);
 
-  ret = base64_encode(rgb_size, (uint8_t *)rgb, rgb64_size + 1, (char *)rgb64);
+  // -- crgb --
+  int crgb64_size = num_pixels * sizeof(uint32_t);
+  uint8_t *crgb64 = (uint8_t *)malloc(crgb64_size + 1);
 
-  if (ret < 0) {
-    fprintf(stderr, "error: base64_encode failed: ret=%d\n", ret);
-    exit(1);
+  // ----------- RGBA base64_encode ------------------
+
+  // for (size_t i = 0; i < num_reps; i++) {
+  //   base64_encode(rgba_size, (uint8_t *)rgba, rgba64_size + 1, (char
+  //   *)rgba64); printf("%05lu: rgba (%03lu)\n", i, strlen((char *)rgba64));
+  // }
+
+  // ----------- RGB base64_encode ------------------
+
+  for (size_t i = 0; i < num_reps; i++) {
+    base64_encode(rgb_size, (uint8_t *)rgb, rgb64_size + 1, (char *)rgb64);
+    printf("%05lu: rgb  (%03lu)\n", i, strlen((char *)rgb64));
   }
 
-  printf("rgb  (%03lu) : %s\n", strlen((char *)rgb64), rgb64);
+  // ----------- custom RGB base64_encode ------------------
 
-  uint8_t *crgb64 = (uint8_t *)malloc(num_pixels * sizeof(uint32_t) + 1);
-  custom_base64_encode(num_pixels, rgba, (char *)crgb64);
+  for (size_t i = 0; i < num_reps * 32; i++) {
+    custom_base64_encode(num_pixels, rgba, (char *)crgb64);
+    printf("%05lu: crgb (%03lu)\n", i, strlen((char *)crgb64));
+  }
 
-  printf("crgb (%03lu) : %s\n", strlen((char *)crgb64), crgb64);
+  // ----------- free ------------------
 
   free(rgba);
   free(rgba64);
