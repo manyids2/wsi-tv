@@ -42,5 +42,5 @@ void viewerZoomIn(ViewerState *V);
 void viewerZoomOut(ViewerState *V);
 
 void viewerSetBuffer(ViewerState *V, int index, int tx, int ty, int ts);
-void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int x,
-                            int y);
+void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int ts,
+                            int x, int y);

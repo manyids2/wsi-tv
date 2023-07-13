@@ -21,21 +21,19 @@ void bufferInit(BufferState *B, int vtx, int vty, int ts) {
   B->vty = vty;
   B->ts = ts;
 
-  // Compute buffer and base64 encoded size
-  int total_size = B->ts * B->ts * sizeof(uint32_t);
-  // size_t base64_size = ((total_size + 2) / 3) * 4;
-  size_t base64_size = total_size;
-
   // Allocate memory for pointers to buffers
   int max_buffers = vtx * vty;
   if (max_buffers > MAX_BUFFERS)
     die("Screen size exceeds expected bounds\r\n");
 
-  // Put 0s in all buffers
+  // Put 0s in all buffers ( these are pointers to the real buffers )
   B->bufs = calloc(max_buffers, sizeof(int *));
 
+  // Compute buffer and base64 encoded size
+  size_t total_size = B->ts * B->ts * sizeof(uint32_t);
+
   // Allocate memory for base64 encoded data
-  B->buf64 = (uint8_t *)malloc(base64_size + 1);
+  B->buf64 = (uint8_t *)malloc(total_size + 1);
 
   // Initialize values, memory at each tile position
   int index;
@@ -77,35 +75,27 @@ void bufferFree(BufferState *B) {
 static const uint8_t base64enc_tab[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-void custom_base64_encode(size_t in_len, const uint8_t *in, char *out) {
+void custom_base64_encode(size_t total_pixels, const uint32_t *in, char *out) {
   // We receive RGBA pixel ( 32 bits )
   uint32_t pixel;
-  uint32_t new_pixel = 0x00000000;
   uint8_t u1, u2, u3, u4;
-  int total_pixels = in_len / 4;
-  for (int i = 0; i < total_pixels; i++) {
-    pixel = (uint32_t)in[i * 4]; // 32 bits
+  for (size_t i = 0; i < total_pixels; i++) {
+    pixel = (uint32_t)in[i]; // 32 bits, 4 bytes
     // c bit manipulation
     // 8 * 4 : xxxxxx xx.xxxx xxxx.xx xxxxxx xxxxxxxx ->
     // 6 * 4 : yyyyyy yyyyyy  yyyyyy  yyyyyy --------
 
-    // should not do anything but it did
-    new_pixel = pixel & 0x000000FF;
-    // new_pixel = new_pixel | (pixel & 0x00FF0000);
-    // new_pixel = new_pixel | (pixel & 0x0000FF00);
-    // new_pixel = new_pixel | (pixel & 0x000000FF);
-
-    // not working
-    u1 = ((new_pixel & 0xFC0000) >> 18) & 0x3F; // mask 6 bits
-    u2 = ((new_pixel & 0x03F000) >> 12) & 0x3F;
-    u3 = ((new_pixel & 0x000FC0) >> 6) & 0x3F;
-    u4 = ((new_pixel & 0x00003F) >> 0) & 0x3F;
+    //      rgb -> encoded -> binary
+    // 0x000000 -> AAAA    -> 000000 000000 000000 000000
+    // 0xFF0000 -> /wAA    -> 111111 110000 000000 000000
+    // 0x00FF00 -> AP8A    -> 000000 001111 111100 000000
+    // 0x0000FF -> AAD/    -> 000000 000000 000011 111111
 
     // showing red
-    // u1 = (new_pixel >> 0) & 0x3F; // mask till 6 bits
-    // u2 = (new_pixel >> 6) & 0x3F;
-    // u3 = (new_pixel >> 12) & 0x3F;
-    // u4 = (new_pixel >> 18) & 0x3F;
+    u1 = ((pixel & 0x00FC0000) >> 18) & 0x3F;
+    u2 = ((pixel & 0x0003F000) >> 12) & 0x3F;
+    u3 = ((pixel & 0x00000FC0) >> 6) & 0x3F;
+    u4 = ((pixel & 0x0000003F) >> 0) & 0x3F;
 
     // Write it to out buffer
     out[i * 4] = base64enc_tab[u1];
@@ -114,7 +104,7 @@ void custom_base64_encode(size_t in_len, const uint8_t *in, char *out) {
     out[i * 4 + 3] = base64enc_tab[u4];
   }
   // null terminator
-  out[in_len] = 0;
+  out[total_pixels * 4] = 0;
 }
 
 int base64_encode(size_t in_len, const uint8_t *in, size_t out_len, char *out) {
@@ -175,7 +165,8 @@ void bufferProvisionImage(int index, int w, int h, uint32_t *buf,
   //   exit(1);
   // }
 
-  custom_base64_encode(total_size, (uint8_t *)buf, (char *)buf64);
+  // NOTE: Works!!
+  custom_base64_encode(w * h, buf, (char *)buf64);
 
   /*
    * Switch to RGB to get gains on base64 encoding

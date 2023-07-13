@@ -154,7 +154,7 @@ void viewerInit(ViewerState *V, char *slide) {
       bufferProvisionImage(index + 1, V->ts, V->ts, V->B->bufs[index],
                            V->B->buf64);
       // Here offset is 0, so just put tx = x and ty = y
-      viewerSetBufferIndices(V, index, x, y, x, y);
+      viewerSetBufferIndices(V, index, x, y, V->ts, x, y);
     }
   }
 
@@ -346,8 +346,8 @@ void viewerSetBuffer(ViewerState *V, int index, int tx, int ty, int ts) {
   bufferProvisionImage(index + 1, ts, ts, V->B->bufs[index], V->B->buf64);
 }
 
-void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int x,
-                            int y) {
+void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int ts,
+                            int x, int y) {
   V->B->ll[index] = V->l; // level of tile
   V->B->wx[index] = tx;   // pos of tile in slide
   V->B->wy[index] = ty;
@@ -356,6 +356,25 @@ void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int x,
   V->B->vy[index] = y;
   // NOTE: We do not update owx, owy here,
   // rather after render
+
+  // TODO: Somehow not working properly here
+  // int col, row, vx, vy, ii, X, Y;
+  // index = x * V->B->vty + y; // random tile
+  // vx = V->B->vx[index];      // expected position in view
+  // vy = V->B->vy[index];
+  // ii = V->B->ii[index];
+  //
+  // // compute params to send to kitty
+  // col = (vx * ts) / V->cw;
+  // row = (vy * ts) / V->ch;
+  // X = vx * ts - (col * V->cw);
+  // Y = vy * ts - (row * V->ch);
+  //
+  // // clear prev tile
+  // bufferClearImage(ii);
+  //
+  // // put current tile with kitty id at position in view
+  // bufferDisplayImage(ii, row, col, X, Y, -1);
 }
 
 void viewerMoveRight(ViewerState *V) {
@@ -376,12 +395,12 @@ void viewerMoveRight(ViewerState *V) {
       // display on right column
       x = V->B->vtx - 1;
       y = V->B->vy[b];
-      viewerSetBufferIndices(V, b, roright, ty, x, y);
+      viewerSetBufferIndices(V, b, roright, ty, ts, x, y);
     } else {
       // shift to left
       x = V->B->vx[b] - 1;
       y = V->B->vy[b];
-      viewerSetBufferIndices(V, b, tx, ty, x, y);
+      viewerSetBufferIndices(V, b, tx, ty, ts, x, y);
     }
   }
 }
@@ -404,12 +423,12 @@ void viewerMoveLeft(ViewerState *V) {
       // display on left column
       x = 0;
       y = V->B->vy[b];
-      viewerSetBufferIndices(V, b, loleft, ty, x, y);
+      viewerSetBufferIndices(V, b, loleft, ty, ts, x, y);
     } else {
       // shift to right
       x = V->B->vx[b] + 1;
       y = V->B->vy[b];
-      viewerSetBufferIndices(V, b, tx, ty, x, y);
+      viewerSetBufferIndices(V, b, tx, ty, ts, x, y);
     }
   }
 }
@@ -432,12 +451,12 @@ void viewerMoveDown(ViewerState *V) {
       // display on bottom row
       x = V->B->vx[b];
       y = V->B->vty - 1;
-      viewerSetBufferIndices(V, b, tx, bobot, x, y);
+      viewerSetBufferIndices(V, b, tx, bobot, ts, x, y);
     } else {
       // shift up
       x = V->B->vx[b];
       y = V->B->vy[b] - 1;
-      viewerSetBufferIndices(V, b, tx, ty, x, y);
+      viewerSetBufferIndices(V, b, tx, ty, ts, x, y);
     }
   }
 }
@@ -460,12 +479,12 @@ void viewerMoveUp(ViewerState *V) {
       // display on top row
       x = V->B->vx[b];
       y = 0;
-      viewerSetBufferIndices(V, b, tx, totop, x, y);
+      viewerSetBufferIndices(V, b, tx, totop, ts, x, y);
     } else {
       // shift down
       x = V->B->vx[b];
       y = V->B->vy[b] + 1;
-      viewerSetBufferIndices(V, b, tx, ty, x, y);
+      viewerSetBufferIndices(V, b, tx, ty, ts, x, y);
     }
   }
 }
@@ -481,7 +500,7 @@ void viewerZoomIn(ViewerState *V) {
     for (y = 0; y < V->B->vty; y++) {
       b = x * V->B->vty + y;
       viewerSetBuffer(V, b, tx + x, ty + y, ts);
-      viewerSetBufferIndices(V, b, tx + x, ty + y, x, y);
+      viewerSetBufferIndices(V, b, tx + x, ty + y, ts, x, y);
     }
   }
 }
@@ -497,7 +516,7 @@ void viewerZoomOut(ViewerState *V) {
     for (y = 0; y < V->B->vty; y++) {
       b = x * V->B->vty + y;
       viewerSetBuffer(V, b, tx + x, ty + y, ts);
-      viewerSetBufferIndices(V, b, tx + x, ty + y, x, y);
+      viewerSetBufferIndices(V, b, tx + x, ty + y, ts, x, y);
     }
   }
 }

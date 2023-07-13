@@ -50,5 +50,5 @@ void bufferClearImage(int index);
 void bufferDeleteImage(int index);
 
 // base64
-void custom_base64_encode(size_t in_len, const uint8_t *in, char *out);
+void custom_base64_encode(size_t in_len, const uint32_t *in, char *out);
 int base64_encode(size_t in_len, const uint8_t *in, size_t out_len, char *out);
