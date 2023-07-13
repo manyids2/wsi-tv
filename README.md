@@ -41,7 +41,8 @@ make
 
 ## Issues
 
-- Tile positions are not always correct ![tiling-issues](./tiling-issues.png)
+- Tile positions are not always correct
+  - ![tiling-issues](./tiling-issues.png)
 - if it crashes, kitty needs to be reset
 
 ## Program structure
@@ -52,8 +53,8 @@ make
 
 ```
 Each sample counts as 0.01 seconds.
-  %   cumulative   self              self     total           
- time   seconds   seconds    calls  ms/call  ms/call  name    
+  %   cumulative   self              self     total
+ time   seconds   seconds    calls  ms/call  ms/call  name
 100.12      0.14     0.14      312     0.45     0.45  base64_encode
   0.00      0.14     0.00     1396     0.00     0.00  bufferDisplayImage
   0.00      0.14     0.00     1396     0.00     0.00  moveCursor
@@ -75,8 +76,8 @@ Each sample counts as 0.01 seconds.
 
 ```
 Each sample counts as 0.01 seconds.
-  %   cumulative   self              self     total           
- time   seconds   seconds    calls  ms/call  ms/call  name    
+  %   cumulative   self              self     total
+ time   seconds   seconds    calls  ms/call  ms/call  name
 100.12      0.02     0.02      288     0.07     0.07  bufferProvisionImage
   0.00      0.02     0.00      662     0.00     0.00  moveCursor
   0.00      0.02     0.00      661     0.00     0.00  bufferDisplayImage
