@@ -23,10 +23,10 @@ make
 - `q` - quit
 - `t` - toggle thumbnail
 
-- `j` - down
-- `k` - up
-- `l` - right
-- `h` - left
+- `j` / `↓` - down
+- `k` / `↑` - up
+- `l` / `←` - right
+- `h` / `→` - left
 - `i` - zoom in ( keeps top left constant )
 - `o` - zoom out ( keeps top left constant )
 
