@@ -2,6 +2,8 @@
 
 SSH server to serve whole slide images. Made for kitty terminal.
 
+Uses custom base64 encoder that takes `RGBA` as input and encodes to base64 `RGB`.
+
 ## Installation
 
 ```bash
@@ -21,15 +23,15 @@ make
 - `k` - up
 - `l` - right
 - `h` - left
-- `i` - zoom in
-- `o` - zoom out
-- `1`, `2`, ... - jump to level
+- `i` - zoom in ( keeps top left constant )
+- `o` - zoom out ( keeps top left constant )
+- `1`, `2`, ... - jump to level - not yet implemented
 
 ## Limitations
 
-- Needs terminal support for `ws_pixel_x` and `ws_pixel_y` with
-  `ioctl` request to find terminal width and height in pixels.
 - Needs terminal support for [kitty image protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
+- Terminal needs to respond to `\x1b[14t` request for pixel dimensions.
+- Only tested on Linux.
 
 ## Program structure
 
