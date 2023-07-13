@@ -41,7 +41,7 @@ make
 
 ## Issues
 
-- tile positions are not pixel perfect
+- Tile positions are not always correct ![tiling-issues](./tiling-issues.png)
 - if it crashes, kitty needs to be reset
 
 ## Program structure
