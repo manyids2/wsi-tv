@@ -4,6 +4,8 @@ Whole slide image terminal viewer. Made for [kitty](https://sw.kovidgoyal.net/ki
 
 Uses custom base64 encoder that takes `RGBA` as input and encodes to base64 `RGB`.
 
+![screenshot](./screenshot.png)
+
 ## Installation
 
 ```bash
@@ -19,12 +21,15 @@ make
 ## Keys
 
 - `q` - quit
+- `t` - toggle thumbnail
+
 - `j` - down
 - `k` - up
 - `l` - right
 - `h` - left
 - `i` - zoom in ( keeps top left constant )
 - `o` - zoom out ( keeps top left constant )
+
 - `1`, `2`, ... - jump to level - not yet implemented
 
 ## Limitations
