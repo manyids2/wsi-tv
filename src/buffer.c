@@ -87,6 +87,14 @@ void custom_base64_encode(size_t in_len, const uint8_t *in, char *out) {
     // c bit manipulation
     // 8 * 4 : xxxxxx xx.xxxx xxxx.xx xxxxxx xxxxxxxx ->
     // 6 * 4 : yyyyyy yyyyyy  yyyyyy  yyyyyy --------
+
+    // not working
+    // u1 = (uint8_t)pixel & 0xFC000000; // mask 6 bits
+    // u2 = (uint8_t)pixel & 0x03F00000;
+    // u3 = (uint8_t)pixel & 0x000FC000;
+    // u4 = (uint8_t)pixel & 0x00003F00;
+
+    // showing red
     u1 = (pixel >> 0) & 0x3F; // mask till 6 bits
     u2 = (pixel >> (0 + 6)) & 0x3F;
     u3 = (pixel >> (0 + 12)) & 0x3F;
