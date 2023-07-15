@@ -46,13 +46,14 @@ void kittyProvisionImage(int index, int w, int h, uint32_t *buf,
   // NOTE: Custom implementation
   RGBAtoRGBbase64(w * h, buf, (char *)buf64);
 
-  // Kitty protocol:
-  //   <ESC>_Gf=24,s=<w>,v=<h>,m=1;<encoded pixel data first chunk><ESC>\
-  //   <ESC>_Gm=1;<encoded pixel data second chunk><ESC>\
-  //   <ESC>_Gm=0;<encoded pixel data last chunk><ESC>\
-  //
+  /*
+   * Switch to RGB to get gains on base64 encoding
+   *
+   * <ESC>_Gf=24,s=<w>,v=<h>,m=1;<encoded pixel data first chunk><ESC>\
+   * <ESC>_Gm=1;<encoded pixel data second chunk><ESC>\
+   * <ESC>_Gm=0;<encoded pixel data last chunk><ESC>\
+   */
 
-  // TODO: change fprintf to writes
   size_t sent_bytes = 0;
   while (sent_bytes < base64_size) {
     size_t chunk_size =
