@@ -99,3 +99,26 @@ Each sample counts as 0.01 seconds.
   0.00      0.02     0.00        1     0.00     0.00  getWindowSize
   0.00      0.02     0.00        1     0.00     0.00  slideInit
 ```
+
+## Caching
+
+- With tile size of 256 pixels
+  - each tile requires
+  - $256 (width) * 256 (height) * 4 (rgba) \ 2 (buf,buf64) = 0.5MB$
+- Assuming screen size of ~3k x ~2k, with 4 tiles to 1k,
+  - we get approx 12 cols x 8 rows = 96
+- Therefore, total mem for 1 full screen,
+  - $96 \ 0.5 = 48MB$
+- Kitty max is 320MB
+
+  - ~6 screens = $96 * 6 = 576$ tiles
+  - [quota](https://sw.kovidgoyal.net/kitty/graphics-protocol/#image-persistence-and-storage-quotas).
+
+- Therefore, viable strategy:
+  - assume screen is 12 cols \* 8 rows
+  - maintain 3 levels
+  - set `border` to 2 tiles
+  - details:
+    - base everything on distance from center.
+    - compute updated distances on keypress
+    - determine which buffers to replace based on sorted distances
