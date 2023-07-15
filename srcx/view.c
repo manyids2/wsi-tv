@@ -9,24 +9,24 @@ void viewInit(View *V, char *slide) {
 
   // Always constants
   V->ts = TILE_SIZE;
-  V->ww = V->S->level_w[V->S->level_count - 1];
-  V->wh = V->S->level_h[V->S->level_count - 1];
+  V->ww = V->S->level_w[0];
+  V->wh = V->S->level_h[0];
 
   // Query to get sizes
   getWindowSize(&V->rows, &V->cols, &V->vtw, &V->vth);
   getWindowSizeKitty(&V->vtw, &V->vth);
 
   // Compute cell dims
-  V->cw = (int)V->vw / V->cols;
-  V->ch = (int)V->vh / V->rows;
+  V->cw = (int)V->vtw / V->cols;
+  V->ch = (int)V->vth / V->rows;
 
-  // 10 chars offset in case of sidebar
-  V->ox = V->cw * 10;
-  V->oy = 0;
+  // Keep margin of 0 for now
+  V->aox = 0;
+  V->aoy = 0;
 
-  // Compute effective view
-  V->vw = V->vtw - V->ox;
-  V->vh = V->vth - V->oy;
+  // Compute effective view ( for now, no margin on bottom and right )
+  V->vw = V->vtw - V->aox;
+  V->vh = V->vth - V->aoy;
 
   // Initialize view level maximums
   V->vmi = V->vw / V->ts;
@@ -39,11 +39,6 @@ void viewInit(View *V, char *slide) {
   V->wx = V->ww / 2;
   V->wy = V->wh / 2;
   viewSetWorldPosition(V, V->wx, V->wy);
-
-  // Set old also to same
-  V->ol = V->l;
-  V->osi = V->si;
-  V->osj = V->sj;
 }
 
 void viewSetLevel(View *V, int level) {
@@ -75,39 +70,60 @@ void viewSetWorldPosition(View *V, int64_t wx, int64_t wy) {
 
   // Recompute top left
   // NOTE: edge case -> level is too small for view
-  V->si = MAX((V->sx - (V->vw / 2)) / V->ts, 0);
-  V->sj = MAX((V->sy - (V->vh / 2)) / V->ts, 0);
+  V->si = (V->sx - (V->vw / 2)) / V->ts;
+  V->sj = (V->sy - (V->vh / 2)) / V->ts;
+
+  // Reset to align tiles
+  viewSetSlideCoords(V, V->si, V->sj);
 }
 
-void viewSetSlidePosition(View *V, int64_t sx, int64_t sy) {
-  // Corresponding world position
-  V->wx = sx * V->downsample;
-  V->wy = sy * V->downsample;
+void viewSetSlideCoords(View *V, int si, int sj) {
+  // Store new top left coords
+  V->si = si;
+  V->sj = sj;
 
-  // Set slide positions using world
-  viewSetWorldPosition(V, V->wx, V->wy);
+  // Corresponding slide and world position
+  V->sx = (si * V->ts) + (V->vw / 2);
+  V->sy = (sj * V->ts) + (V->vh / 2);
+  V->wx = V->sx * V->downsample;
+  V->wy = V->sy * V->downsample;
 }
 
 void viewMoveUp(View *V) {
-  V->sy = MAX(V->sy - V->ts, V->ts); // Keep margin of ts from center
-  viewSetSlidePosition(V, V->sx, V->sy);
+  int sj = MAX(V->sj - 1, 0);
+  if (sj == V->sj)
+    return;
+  viewSetSlideCoords(V, V->si, sj);
 }
+
 void viewMoveDown(View *V) {
-  V->sy = MIN(V->sy + V->ts, V->sh - V->ts); // Keep margin of ts from center
-  viewSetSlidePosition(V, V->sx, V->sy);
+  int sj = MIN(V->sj + 1, V->smj - 1);
+  if (sj == V->sj)
+    return;
+  viewSetSlideCoords(V, V->si, sj);
 }
+
 void viewMoveLeft(View *V) {
-  V->sx = MAX(V->sx - V->ts, V->ts); // Keep margin of ts from center
-  viewSetSlidePosition(V, V->sx, V->sy);
+  int si;
+  si = MAX(V->si - 1, 0);
+  if (si == V->si)
+    return;
+  viewSetSlideCoords(V, si, V->sj);
 }
+
 void viewMoveRight(View *V) {
-  V->sx = MIN(V->sx + V->ts, V->sw - V->ts); // Keep margin of ts from center
-  viewSetSlidePosition(V, V->sx, V->sy);
+  int si;
+  si = MIN(V->si + 1, V->smi - 1);
+  if (si == V->si)
+    return;
+  viewSetSlideCoords(V, si, V->sj);
 }
+
 void viewZoomIn(View *V) {
   V->l = MAX(V->l - 1, 0);
   viewSetLevel(V, V->l);
 }
+
 void viewZoomOut(View *V) {
   V->l = MIN(V->l + 1, V->S->level_count - 1);
   viewSetLevel(V, V->l);
@@ -116,12 +132,24 @@ void viewZoomOut(View *V) {
 void viewDrawTiles(View *V) {
   char s[32];
   int len;
-  static const int rs = 5;  // row spacing
-  static const int cs = 10; // column spacing
+  int si, sj, row, col, X, Y;
   for (int j = 0; j < V->vmj; j++) {
     for (int i = 0; i < V->vmi; i++) {
-      moveCursor(j * rs, i * cs);
-      len = snprintf(s, sizeof(s), "%d,%d", i, j);
+      si = V->si + i;
+      sj = V->sj + j;
+      col = (i * V->ts) / V->cw;
+      row = (j * V->ts) / V->ch;
+      X = i * V->ts - (col * V->cw);
+      Y = j * V->ts - (row * V->ch);
+
+      // Write current row, col
+      moveCursor(row + 1, col);
+      len = snprintf(s, sizeof(s), "%d,%d", si, sj);
+      assert(write(STDOUT_FILENO, s, len) >= 0);
+
+      // Write current X, Y
+      moveCursor(row + 2, col);
+      len = snprintf(s, sizeof(s), "%d,%d", X, Y);
       assert(write(STDOUT_FILENO, s, len) >= 0);
     }
     assert(write(STDOUT_FILENO, "\r\n", 4) >= 0);
@@ -154,14 +182,11 @@ void viewPrintDebug(View *V) {
                    "      si,   sj: %6d, %6d   \r\n"
                    "      wx,   wy: %6ld, %6ld \r\n"
                    "      sx,   sy: %6ld, %6ld \r\n"
-                   "   Old:                    \r\n"
-                   "            ol: %6d        \r\n"
-                   "     osi,  osj: %6d, %6d   \r\n"
                    "",
                    V->ts, V->ww, V->wh, V->cols, V->rows, V->vw, V->vh, V->cw,
-                   V->ch, V->vx, V->vy, V->vmi, V->vmj, V->ox, V->oy, V->sw,
+                   V->ch, V->vx, V->vy, V->vmi, V->vmj, V->aox, V->aoy, V->sw,
                    V->sh, V->smi, V->smj, V->downsample, V->l, V->si, V->sj,
-                   V->wx, V->wy, V->sx, V->sy, V->ol, V->osi, V->osj);
+                   V->wx, V->wy, V->sx, V->sy);
     assert(write(STDOUT_FILENO, s, len) >= 0);
     break;
   case 2:

@@ -32,7 +32,7 @@ typedef struct View {
   int cw, ch;     // cell dims
   int vx, vy;     // view center position
   int vmi, vmj;   // maximums
-  int ox, oy;     // App level offsets, for sidebar
+  int aox, aoy;   // App level offsets, for sidebar
 
   // Constant for level
   int64_t sw, sh;   // slide dims at level
@@ -41,7 +41,6 @@ typedef struct View {
 
   // Main state ( which should change on keypress )
   int l, si, sj;          // current level and slide row, col at top left
-  int ol, osi, osj;       // old level and slide row, col at top left
   int64_t wx, wy, sx, sy; // world and slide center positions in pixels
 
   Slide *S;
@@ -58,6 +57,9 @@ void viewMoveLeft(View *V);
 void viewMoveRight(View *V);
 void viewZoomIn(View *V);
 void viewZoomOut(View *V);
+
+void viewSetSlideCoords(View *V, int si, int sj);
+void viewSetWorldPosition(View *V, int64_t wx, int64_t wy);
 
 void viewPrintDebug(View *V);
 void viewFree(View *V);

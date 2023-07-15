@@ -26,13 +26,13 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
     break;
 
   // Up
-  case ARROW_UP:
+  case ARROW_DOWN:
   case 'j':
     viewMoveDown(A.V);
     break;
 
   // Down
-  case ARROW_DOWN:
+  case ARROW_UP:
   case 'k':
     viewMoveUp(A.V);
     break;
