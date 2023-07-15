@@ -11,7 +11,6 @@ typedef struct View {
   //   sx, sy -> coords
   //   si, sj -> tile coords ( row, col )
   //   smi, smj -> max tile coords
-  int dirty; // only render if dirty
 
   // Constants upto resize
   int64_t ww, wh; // in pixels

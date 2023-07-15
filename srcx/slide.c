@@ -1,6 +1,6 @@
 #include "slide.h"
 
-void slideInit(SlideState *S, char *slide) {
+void slideInit(Slide *S, char *slide) {
   // Open ( exit if error )
   openslide_t *osr = openslide_open(slide);
   assert(osr != NULL && openslide_get_error(osr) == NULL);
@@ -45,12 +45,12 @@ void slideInit(SlideState *S, char *slide) {
   assert(S->thumbnail_w > 0);
 }
 
-void slideGetTile(SlideState *S, uint32_t *buf, int l, int i, int j, int ts) {
+void slideGetTile(Slide *S, uint32_t *buf, int l, int i, int j, int ts) {
   openslide_read_region(S->osr, buf, i * ts, j * ts, l, ts, ts);
   assert(!openslide_get_error(S->osr));
 }
 
-void slideFree(SlideState *S) {
+void slideFree(Slide *S) {
   openslide_close(S->osr);
 
   // Free only if thumbnail was already allocated

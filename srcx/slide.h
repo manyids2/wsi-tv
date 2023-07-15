@@ -7,7 +7,7 @@
 #define MAX_ASSOCIATED_IMAGES 8
 #define THUMBNAIL_ID 128000 // arbit large int for kitty
 
-typedef struct SlideState {
+typedef struct Slide {
   // Openslide slide
   openslide_t *osr;
 
@@ -20,11 +20,11 @@ typedef struct SlideState {
   // Thumbnail
   uint32_t *thumbnail;              // buffer
   int64_t thumbnail_w, thumbnail_h; // dims
-} SlideState;
+} Slide;
 
 // Constructor and destructor
-void slideInit(SlideState *S, char *slide);
-void slideFree(SlideState *S);
+void slideInit(Slide *S, char *slide);
+void slideFree(Slide *S);
 
 // Get (i, j)th tile from level (l), given tile size (ts)
-void slideGetTile(SlideState *S, uint32_t *buf, int l, int i, int j, int ts);
+void slideGetTile(Slide *S, uint32_t *buf, int l, int i, int j, int ts);
