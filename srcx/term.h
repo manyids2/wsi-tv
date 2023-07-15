@@ -19,6 +19,7 @@ int getWindowSize(int *rows, int *cols, int *vw, int *vh);
 void getWindowSizeKitty(int *vw, int *vh);
 
 void clearScreen(void);
+void clearText(void);
 void hideCursor(void);
 void showCursor(void);
 void moveCursor(int row, int col);

@@ -42,3 +42,6 @@ typedef struct Cache {
   int levels[LAYERS]; // Layer holds which level
   LayerCache *layers[LAYERS];
 } Cache;
+
+void cacheInit(Cache *C);
+void cacheFree(Cache *C);

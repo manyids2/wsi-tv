@@ -2,7 +2,7 @@
 
 void appInit(App *A, char *slide) {
   // Initialize slide
-  slideInit(A->S, slide);
+  viewInit(A->V, slide);
 }
 
-void appFree(App *A) { slideFree(A->S); }
+void appFree(App *A) { slideFree(A->V->S); }
