@@ -2,7 +2,7 @@
 
 // --- kitty related ---
 // 26 + 26 + 10 + 2 = 64
-static const uint8_t base64enc_tab[] =
+static const uint8_t base64enc_tab[64] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 void RGBAtoRGBbase64(size_t total_pixels, const uint32_t *in, char *out) {
