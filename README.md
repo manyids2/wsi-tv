@@ -4,7 +4,7 @@ Whole slide image terminal viewer. Made for [kitty](https://sw.kovidgoyal.net/ki
 
 Uses custom base64 encoder that takes `RGBA` as input and encodes to base64 `RGB`.
 
-![screenshot](./screenshot.png)
+![screenshot](./images/screenshot.png)
 
 ## Installation
 
@@ -41,7 +41,7 @@ make
 ## Issues
 
 - Tile positions are not always correct.
-  - ![tiling-issues](./tiling-issues.png)
+  - ![tiling-issues](./images/tiling-issues.png)
 - If it crashes, kitty needs to be reset.
   - use `reset`
 - Not optimal base64
@@ -50,7 +50,7 @@ make
 
 ## Program structure
 
-![structure](./structure.png)
+![structure](./images/structure.png)
 
 ## Optimization
 

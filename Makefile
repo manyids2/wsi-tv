@@ -1,8 +1,13 @@
-wsi-tv: Makefile src/main.c src/term.c src/term.h src/buffer.c src/buffer.h src/slide.c src/slide.h src/viewer.c src/viewer.h
-	$(CC) src/main.c src/term.c src/term.h src/buffer.c src/buffer.h src/slide.c src/slide.h src/viewer.c src/viewer.h -o wsi-tv -Wall -Wextra -pedantic -std=c99 -lopenslide -lm -lpng -O3 -pg
+NAME := wsi-tv
+SRC_DIR := srcx
+BIN_DIR := bin
+SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
+HDR_FILES := $(wildcard $(SRC_DIR)/*.h)
+LDFLAGS := -lopenslide -lm
+CXXFLAGS := -Wall -Wextra -pedantic -std=c99 -O3
 
-print-tile: src/print-tile.c
-	$(CC) src/print-tile.c -o print-tile -Wall -Wextra -pedantic -std=c99 -lopenslide -O3
+$(NAME): $(SRC_FILES) $(HDR_FILES) Makefile
+	$(CC) $(SRC_FILES) $(HDR_FILES) -o $(BIN_DIR)/$(NAME) $(LDFLAGS) $(CXXFLAGS)
 
-print-thumbnail: src/print-thumbnail.c
-	$(CC) src/print-thumbnail.c -o print-thumbnail -Wall -Wextra -pedantic -std=c99 -lopenslide -O3
+clean:
+	rm $(BIN_DIR)/$(NAME)
