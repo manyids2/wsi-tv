@@ -107,9 +107,9 @@ int main(int argc, char **argv) {
   // Free all resources
   appFree(&A);
 
-  // // Reset terminal
-  // clearScreen();
-  // moveCursor(0, 0);
+  // Reset terminal
+  clearScreen();
+  moveCursor(0, 0);
 
   // Exit successfully
   exit(EXIT_SUCCESS);

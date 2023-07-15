@@ -20,9 +20,10 @@ void viewInit(View *V, char *slide) {
   V->cw = (int)V->vtw / V->cols;
   V->ch = (int)V->vth / V->rows;
 
-  // Keep margin of 0 for now
-  V->aox = 0;
-  V->aoy = 0;
+  // Keep margin of 1 on top for status bar
+  // 5 on left for style
+  V->aox = 5 * V->cw;
+  V->aoy = 15 * V->ch;
 
   // Compute effective view ( for now, no margin on bottom and right )
   V->vw = V->vtw - V->aox;
@@ -120,27 +121,33 @@ void viewMoveRight(View *V) {
 }
 
 void viewZoomIn(View *V) {
-  V->l = MAX(V->l - 1, 0);
-  viewSetLevel(V, V->l);
+  int l = MAX(V->l - 1, 0);
+  if (l == V->l)
+    return;
+  viewSetLevel(V, l);
 }
 
 void viewZoomOut(View *V) {
-  V->l = MIN(V->l + 1, V->S->level_count - 1);
-  viewSetLevel(V, V->l);
+  int l = MIN(V->l + 1, V->S->level_count - 1);
+  if (l == V->l)
+    return;
+  viewSetLevel(V, l);
 }
 
 void viewDrawTiles(View *V) {
   char s[32];
   int len;
-  int si, sj, row, col, X, Y;
+  int x, y, si, sj, row, col, X, Y;
   for (int j = 0; j < V->vmj; j++) {
     for (int i = 0; i < V->vmi; i++) {
       si = V->si + i;
       sj = V->sj + j;
-      col = (i * V->ts) / V->cw;
-      row = (j * V->ts) / V->ch;
-      X = i * V->ts - (col * V->cw);
-      Y = j * V->ts - (row * V->ch);
+      x = i * V->ts + V->aox;
+      y = j * V->ts + V->aoy;
+      col = x / V->cw;
+      row = y / V->ch;
+      X = x - (col * V->cw);
+      Y = y - (row * V->ch);
 
       // Write current row, col
       moveCursor(row + 1, col);
