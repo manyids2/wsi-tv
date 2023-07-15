@@ -37,13 +37,16 @@ make
 - Needs terminal support for [kitty image protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
 - Terminal needs to respond to `\x1b[14t` request for pixel dimensions.
 - Only tested on Linux.
-- No caching strategy, always loads new tiles in view.
 
 ## Issues
 
-- Tile positions are not always correct
+- Tile positions are not always correct.
   - ![tiling-issues](./tiling-issues.png)
-- if it crashes, kitty needs to be reset
+- If it crashes, kitty needs to be reset.
+  - use `reset`
+- Not optimal base64
+  - Use [race64](https://github.com/skeeto/race64) for base64 encoding ( with SIMD optimizations ).
+- No caching strategy, always loads new tiles in view.
 
 ## Program structure
 
