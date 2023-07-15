@@ -58,8 +58,8 @@ void slice(const char *str, char *result, size_t start, size_t end) {
 
 void viewerInit(ViewerState *V, char *slide) {
   // Clear screen
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  clearScreen();
+  moveCursor(0, 0);
 
   // Open slide, read slide props like level, dims
   slideInit(V->S, slide);
@@ -70,7 +70,8 @@ void viewerInit(ViewerState *V, char *slide) {
 
   // Read window size using kitty
   {
-    write(STDOUT_FILENO, "\x1b[14t", 5);
+    if (write(STDOUT_FILENO, "\x1b[14t", 5) < 0)
+      die("Query window pixel dims\n");
 
     // Read response
     char str[16];
@@ -196,16 +197,16 @@ void viewerRender(ViewerState *V) {
       vy = V->B->vy[index];
       ii = V->B->ii[index]; // expected kitty id
 
-      // compute params to send to kitty
+      // recompute params to send to kitty
       col = (vx * ts) / V->cw;
       row = (vy * ts) / V->ch;
       X = vx * ts - (col * V->cw);
       Y = vy * ts - (row * V->ch);
 
-      // clear prev tile
+      // clear prev tile and position
       bufferClearImage(ii);
 
-      // put current tile with kitty id at position in view
+      // put tile with kitty id at current position in view
       bufferDisplayImage(ii, row, col, X, Y, -1);
 
       // Reset the old positions
@@ -236,7 +237,8 @@ void viewerRefreshScreen(ViewerState *V) {
   // viewerPrintDebug(V, &ab);
 
   // Finally write out
-  write(STDOUT_FILENO, ab.b, ab.len);
+  if (write(STDOUT_FILENO, ab.b, ab.len) < 0)
+    die("ab Buffer write\n");
   abFree(&ab);
 
   // Reset dirty state
@@ -318,8 +320,8 @@ void viewerProcessKeypress(ViewerState *V) {
   // Quit
   case 'q':
   case (CTRL_KEY('q')):
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    clearScreen();
+    moveCursor(0, 0);
     exit(0);
     break;
   // Cursor movement
@@ -357,24 +359,8 @@ void viewerSetBufferIndices(ViewerState *V, int index, int tx, int ty, int ts,
   // NOTE: We do not update owx, owy here,
   // rather after render
 
-  // TODO: Somehow not working properly here
-  // int col, row, vx, vy, ii, X, Y;
-  // index = x * V->B->vty + y; // random tile
-  // vx = V->B->vx[index];      // expected position in view
-  // vy = V->B->vy[index];
-  // ii = V->B->ii[index];
-  //
-  // // compute params to send to kitty
-  // col = (vx * ts) / V->cw;
-  // row = (vy * ts) / V->ch;
-  // X = vx * ts - (col * V->cw);
-  // Y = vy * ts - (row * V->ch);
-  //
-  // // clear prev tile
-  // bufferClearImage(ii);
-  //
-  // // put current tile with kitty id at position in view
-  // bufferDisplayImage(ii, row, col, X, Y, -1);
+  // NOTE: Also, tried displaying here immediately,
+  // but failed for some reason ( `ts` was used there )
 }
 
 void viewerMoveRight(ViewerState *V) {

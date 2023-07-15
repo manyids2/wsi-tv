@@ -3,11 +3,14 @@
 struct termios orig_termios;
 
 void die(const char *s) {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  if (write(STDOUT_FILENO, "\x1b[2J", 4) < 0)
+    die("Clear screen write\n");
+
+  if (write(STDOUT_FILENO, "\x1b[H", 3) < 0)
+    die("Cursor move write\n");
 
   perror(s);
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
 void disableRawMode(void) {
@@ -15,7 +18,8 @@ void disableRawMode(void) {
     die("tcsetattr");
 
   // show cursor
-  write(STDOUT_FILENO, "\x1b[?25h", 6);
+  if (write(STDOUT_FILENO, "\x1b[?25h", 6) < 0)
+    die("Show move write\n");
 }
 
 void enableRawMode(void) {
@@ -85,9 +89,19 @@ int getWindowSize(int *rows, int *cols, int *vw, int *vh) {
 void moveCursor(int row, int col) {
   char s[32]; // giri giri
   int len = snprintf(s, sizeof(s), "\x1b[%d;%dH", row, col);
-  write(STDOUT_FILENO, s, len);
+  if (write(STDOUT_FILENO, s, len) < 0)
+    die("Move cursor write\n");
 }
 
-void hideCursor(void) { write(STDOUT_FILENO, "\x1b[?25l", 6); }
-void showCursor(void) { write(STDOUT_FILENO, "\x1b[?25h", 6); }
-void clearScreen(void) { write(STDOUT_FILENO, "\x1b[J", 3); }
+void hideCursor(void) {
+  if (write(STDOUT_FILENO, "\x1b[?25l", 6) < 0)
+    die("Hide cursor write\n");
+}
+void showCursor(void) {
+  if (write(STDOUT_FILENO, "\x1b[?25h", 6) < 0)
+    die("Show cursor write\n");
+}
+void clearScreen(void) {
+  if (write(STDOUT_FILENO, "\x1b[2J", 4) < 0)
+    die("Clear screen write\n");
+}

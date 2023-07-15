@@ -194,17 +194,20 @@ void bufferDisplayImage(int index, int row, int col, int X, int Y, int Z) {
   int len =
       snprintf(s, sizeof(s), "\x1b_Ga=p,i=%d,q=2,X=%d,Y=%d,C=1,z=%d;\x1b\\",
                index, X, Y, Z);
-  write(STDOUT_FILENO, s, len);
+  if (write(STDOUT_FILENO, s, len) < 0)
+    die("Display image write\n");
 }
 
 void bufferClearImage(int index) {
   char s[32]; // giri giri
   int len = snprintf(s, sizeof(s), "\x1b_Ga=d,d=i,i=%d;\x1b\\", index);
-  write(STDOUT_FILENO, s, len);
+  if (write(STDOUT_FILENO, s, len) < 1)
+    die("Clear image write\n");
 }
 
 void bufferDeleteImage(int index) {
   char s[32]; // giri giri
   int len = snprintf(s, sizeof(s), "\x1b_Ga=d,d=I,i=%d;\x1b\\", index);
-  write(STDOUT_FILENO, s, len);
+  if (write(STDOUT_FILENO, s, len) < 0)
+    die("Delete image write\n");
 }
