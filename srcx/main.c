@@ -28,29 +28,35 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
   // Up
   case ARROW_UP:
   case 'j':
+    viewMoveDown(A.V);
     break;
 
   // Down
   case ARROW_DOWN:
-  case 'h':
+  case 'k':
+    viewMoveUp(A.V);
     break;
 
   // Left
   case ARROW_LEFT:
-  case 'k':
+  case 'h':
+    viewMoveLeft(A.V);
     break;
 
   // Right
   case ARROW_RIGHT:
   case 'l':
+    viewMoveRight(A.V);
     break;
 
   // Zoom in
   case 'i':
+    viewZoomIn(A.V);
     break;
 
   // Zoom out
   case 'o':
+    viewZoomOut(A.V);
     break;
 
   // Toggle thumbnail
@@ -59,7 +65,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
 
   // Debug info
   case 'd':
-    A.V->debug = !A.V->debug;
+    A.V->debug = (A.V->debug + 1) % 3;
     break;
   }
 
