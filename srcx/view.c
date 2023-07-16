@@ -40,6 +40,9 @@ void viewInit(View *V, char *slide) {
   V->wx = V->ww / 2;
   V->wy = V->wh / 2;
   viewSetWorldPosition(V, V->wx, V->wy);
+
+  // Initialize cache
+  cacheInit(V->C, V->S->osr, V->ts);
 }
 
 void viewSetLevel(View *V, int level) {
@@ -98,7 +101,7 @@ void viewMoveUp(View *V) {
 }
 
 void viewMoveDown(View *V) {
-  int sj = MIN(V->sj + 1, V->smj - 1);
+  int sj = MIN(V->sj + 1, V->smj - V->vmj);
   if (sj == V->sj)
     return;
   viewSetSlideCoords(V, V->si, sj);
@@ -114,7 +117,7 @@ void viewMoveLeft(View *V) {
 
 void viewMoveRight(View *V) {
   int si;
-  si = MIN(V->si + 1, V->smi - 1);
+  si = MIN(V->si + 1, V->smi - V->vmi);
   if (si == V->si)
     return;
   viewSetSlideCoords(V, si, V->sj);
@@ -204,4 +207,7 @@ void viewPrintDebug(View *V) {
   }
 }
 
-void viewFree(View *V) { slideFree(V->S); }
+void viewFree(View *V) {
+  slideFree(V->S);
+  cacheFree(V->C);
+}

@@ -1,6 +1,5 @@
 #include "cache.h"
 #include "slide.h"
-#include "term.h"
 #include <stdint.h>
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))

@@ -1,7 +1,7 @@
 #include "app.h"
 
 void appInit(App *A, char *slide) {
-  // Initialize slide
+  // Initialize view, cache, slide
   viewInit(A->V, slide);
 }
 
