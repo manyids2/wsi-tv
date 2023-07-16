@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdint.h>
 
 // Strucure of buffer
@@ -16,8 +17,8 @@ typedef struct LayerCache {
   // Level
   int level;
 
-  // Center in level, world
-  int64_t sx, sy, wx, wy;
+  // Maximums
+  int smi, smj, vmi, vmj;
 
   // slide level tile indices
   int left, right, top, bottom;
@@ -25,8 +26,7 @@ typedef struct LayerCache {
   // buffers
   uint32_t *bufs[MAX_BUFFERS_PER_LAYER];
 
-  // Level, si, sj of tiles in buffers;
-  int *ll[MAX_BUFFERS_PER_LAYER];
+  // buffer si, sj of tiles in buffers;
   int *si[MAX_BUFFERS_PER_LAYER];
   int *sj[MAX_BUFFERS_PER_LAYER];
 
@@ -34,7 +34,7 @@ typedef struct LayerCache {
   // NOTE: kid[..] == -1  => not loaded
   //       kid[..] ==  0  => loading
   //       kid[..] >=  1  => loaded
-  int *kid[MAX_BUFFERS_PER_LAYER];
+  int32_t *kid[MAX_BUFFERS_PER_LAYER];
 } LayerCache;
 
 typedef struct Cache {
@@ -44,4 +44,10 @@ typedef struct Cache {
 } Cache;
 
 void cacheInit(Cache *C);
+void cacheInitLayer(Cache *C, int layer, int level, int smi, int smj, int vmi,
+                    int vmj, int left, int top);
+
+int cacheGetLayerOfLevel(Cache *C, int level);
+
+void cacheFreeLayer(Cache *C, int layer);
 void cacheFree(Cache *C);
