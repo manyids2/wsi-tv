@@ -5,4 +5,7 @@ void appInit(App *A, char *slide) {
   viewInit(A->V, slide);
 }
 
-void appFree(App *A) { slideFree(A->V->S); }
+void appFree(App *A) {
+  // Free cache, slide
+  viewFree(A->V);
+}

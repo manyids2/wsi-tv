@@ -52,10 +52,10 @@ typedef struct Cache {
 } Cache;
 
 void cacheInit(Cache *C, openslide_t *osr, int ts);
-void cacheInitLayer(Cache *C, int layer, int level, float downsample, int smi,
+void cacheLayerInit(Cache *C, int layer, int level, float downsample, int smi,
                     int smj, int vmi, int vmj, int left, int top);
 
 int cacheGetLayerOfLevel(Cache *C, int level);
 
-void cacheFreeLayer(Cache *C, int layer);
+void cacheLayerFree(Cache *C, int layer);
 void cacheFree(Cache *C);

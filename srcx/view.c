@@ -33,8 +33,8 @@ void viewInit(View *V, char *slide) {
   V->vmi = V->vw / V->ts;
   V->vmj = V->vh / V->ts;
 
-  // Lets start from level 0
-  viewSetLevel(V, 0);
+  // Lets start from least zoom
+  viewSetLevel(V, V->S->level_count - 1);
 
   // Center slide on screen
   V->wx = V->ww / 2;
@@ -43,6 +43,24 @@ void viewInit(View *V, char *slide) {
 
   // Initialize cache
   cacheInit(V->C, V->S->osr, V->ts);
+
+  // Put least zoom on layer 1
+  int level, downsample, smi, smj, vmi, vmj, left, top;
+
+  // Initialize cache layers
+  // Layer level_count - 1 -> least zoom
+  for (int layer = 0; layer < 3; layer++) {
+    level = V->l - layer;
+    downsample = V->S->downsamples[level];
+    smi = V->S->level_w[level] / V->ts;
+    smj = V->S->level_h[level] / V->ts;
+    vmi = V->vmi;
+    vmj = V->vmj;
+    left = V->si;
+    top = V->sj;
+    cacheLayerInit(V->C, layer, level, downsample, smi, smj, vmi, vmj, left,
+                   top);
+  }
 }
 
 void viewSetLevel(View *V, int level) {
@@ -209,5 +227,5 @@ void viewPrintDebug(View *V) {
 
 void viewFree(View *V) {
   slideFree(V->S);
-  cacheFree(V->C);
+  // cacheFree(V->C);
 }

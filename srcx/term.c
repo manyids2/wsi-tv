@@ -35,8 +35,8 @@ void moveCursor(int row, int col) {
 }
 
 void die(const char *s) {
-  clearScreen();
-  moveCursor(0, 0);
+  // clearScreen();
+  // moveCursor(0, 0);
 
   perror(s);
   exit(1);
