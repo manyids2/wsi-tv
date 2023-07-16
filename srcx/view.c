@@ -26,8 +26,9 @@ void viewInit(View *V, char *slide) {
   V->aoy = 15 * V->ch;
 
   // Compute effective view ( for now, no margin on bottom and right )
-  V->vw = V->vtw - V->aox;
-  V->vh = V->vth - V->aoy;
+  // bound to make sure kitty can handle 3 layers
+  V->vw = MIN(V->vtw - V->aox, TILE_SIZE * 12);
+  V->vh = MIN(V->vth - V->aoy, TILE_SIZE * 8);
 
   // Initialize view level maximums
   V->vmi = V->vw / V->ts;
@@ -42,15 +43,16 @@ void viewInit(View *V, char *slide) {
   viewSetWorldPosition(V, V->wx, V->wy);
 
   // Initialize cache
-  cacheInit(V->C, V->S->osr, V->ts);
+  cacheInit(V->C, V->S->osr, V->ts, V->cw, V->ch, V->aox, V->aoy);
 
-  // Put least zoom on layer 1
+  // Store 3 consecutive layers, starting with least zoom
   int level, downsample, smi, smj, vmi, vmj, left, top;
 
   // Initialize cache layers
-  // Layer level_count - 1 -> least zoom
   for (int layer = 0; layer < 3; layer++) {
     level = V->l - layer;
+    if (level < 0)
+      break;
     downsample = V->S->downsamples[level];
     smi = V->S->level_w[level] / V->ts;
     smj = V->S->level_h[level] / V->ts;
@@ -61,6 +63,9 @@ void viewInit(View *V, char *slide) {
     cacheLayerInit(V->C, layer, level, downsample, smi, smj, vmi, vmj, left,
                    top);
   }
+
+  // Show lowest zoom
+  cacheDisplayLevel(V->C, V->l);
 }
 
 void viewSetLevel(View *V, int level) {
@@ -227,5 +232,5 @@ void viewPrintDebug(View *V) {
 
 void viewFree(View *V) {
   slideFree(V->S);
-  // cacheFree(V->C);
+  cacheFree(V->C);
 }
