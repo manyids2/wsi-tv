@@ -5,7 +5,7 @@
 
 #define MAX_LEVELS 32
 #define MAX_ASSOCIATED_IMAGES 8
-#define THUMBNAIL_ID 4096 // arbit large int for kitty
+#define THUMBNAIL_ID 32 // arbit large int for kitty
 
 typedef struct SlideState {
   // Openslide slide

@@ -1,4 +1,6 @@
+#include "kitty.h"
 #include <assert.h>
+#include <openslide/openslide.h>
 #include <stdint.h>
 
 // Strucure of buffer
@@ -10,12 +12,12 @@
 #define MAX_J 8
 
 // limit similar to kitty limits (320MB)
-#define MAX_BUFFERS_PER_LAYER 96 * 2
-#define MAX_BUFFERS 96 * 6
+#define MAX_TILES_PER_LAYER 96 * 2
 
 typedef struct LayerCache {
   // Level
   int level;
+  float downsample;
 
   // Maximums
   int smi, smj, vmi, vmj;
@@ -24,28 +26,34 @@ typedef struct LayerCache {
   int left, right, top, bottom;
 
   // buffers
-  uint32_t *bufs[MAX_BUFFERS_PER_LAYER];
+  uint32_t *buf;
+  char *buf64;
+  int32_t koffset; // Offset for layer when storing kitty ids
 
   // buffer si, sj of tiles in buffers;
-  int *si[MAX_BUFFERS_PER_LAYER];
-  int *sj[MAX_BUFFERS_PER_LAYER];
+  int *si[MAX_TILES_PER_LAYER];
+  int *sj[MAX_TILES_PER_LAYER];
 
   // Kitty id -> will use for locks
   // NOTE: kid[..] == -1  => not loaded
   //       kid[..] ==  0  => loading
   //       kid[..] >=  1  => loaded
-  int32_t *kid[MAX_BUFFERS_PER_LAYER];
+  int32_t *kid[MAX_TILES_PER_LAYER];
 } LayerCache;
 
 typedef struct Cache {
+  // slide
+  openslide_t *osr;
+  int ts;
+
   // Buffers for each level
   int levels[LAYERS]; // Layer holds which level
   LayerCache *layers[LAYERS];
 } Cache;
 
-void cacheInit(Cache *C);
-void cacheInitLayer(Cache *C, int layer, int level, int smi, int smj, int vmi,
-                    int vmj, int left, int top);
+void cacheInit(Cache *C, openslide_t *osr, int ts);
+void cacheInitLayer(Cache *C, int layer, int level, float downsample, int smi,
+                    int smj, int vmi, int vmj, int left, int top);
 
 int cacheGetLayerOfLevel(Cache *C, int level);
 

@@ -5,12 +5,12 @@
 static const uint8_t base64enc_tab[64] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-void RGBAtoRGBbase64(size_t total_pixels, const uint32_t *in, char *out) {
+void RGBAtoRGBbase64(size_t num_pixels, const uint32_t *buf, char *buf64) {
   // We receive RGBA pixel ( 32 bits )
   uint32_t pixel;
   uint8_t u1, u2, u3, u4;
-  for (size_t i = 0; i < total_pixels; i++) {
-    pixel = (uint32_t)in[i]; // 32 bits, 4 bytes
+  for (size_t i = 0; i < num_pixels; i++) {
+    pixel = (uint32_t)buf[i]; // 32 bits, 4 bytes
     // c bit manipulation
     // 8 * 4 : xxxxxx xx.xxxx xxxx.xx xxxxxx xxxxxxxx ->
     // 6 * 4 : yyyyyy yyyyyy  yyyyyy  yyyyyy --------
@@ -28,24 +28,16 @@ void RGBAtoRGBbase64(size_t total_pixels, const uint32_t *in, char *out) {
     u4 = ((pixel & 0x0000003F) >> 0) & 0x3F;
 
     // Write it to out buffer
-    out[i * 4] = base64enc_tab[u1];
-    out[i * 4 + 1] = base64enc_tab[u2];
-    out[i * 4 + 2] = base64enc_tab[u3];
-    out[i * 4 + 3] = base64enc_tab[u4];
+    buf64[i * 4] = base64enc_tab[u1];
+    buf64[i * 4 + 1] = base64enc_tab[u2];
+    buf64[i * 4 + 2] = base64enc_tab[u3];
+    buf64[i * 4 + 3] = base64enc_tab[u4];
   }
   // null terminator
-  out[total_pixels * 4] = 0;
+  buf64[num_pixels * 4] = 0;
 }
 
-void kittyProvisionImage(int index, int w, int h, uint32_t *buf,
-                         uint8_t *buf64) {
-  int total_size = w * h * sizeof(uint32_t);
-  size_t base64_size = total_size;
-
-  // Switch to RGB to get gains on base64 encoding
-  // NOTE: Custom implementation
-  RGBAtoRGBbase64(w * h, buf, (char *)buf64);
-
+void kittyProvisionImage(int index, int w, int h, char *buf64) {
   /*
    * Switch to RGB to get gains on base64 encoding
    *
@@ -53,8 +45,8 @@ void kittyProvisionImage(int index, int w, int h, uint32_t *buf,
    * <ESC>_Gm=1;<encoded pixel data second chunk><ESC>\
    * <ESC>_Gm=0;<encoded pixel data last chunk><ESC>\
    */
-
   size_t sent_bytes = 0;
+  size_t base64_size = w * h * sizeof(uint32_t);
   while (sent_bytes < base64_size) {
     size_t chunk_size =
         base64_size - sent_bytes < CHUNK ? base64_size - sent_bytes : CHUNK;
