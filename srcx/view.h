@@ -59,6 +59,8 @@ void viewZoomOut(View *V);
 
 void viewSetSlideCoords(View *V, int si, int sj);
 void viewSetWorldPosition(View *V, int64_t wx, int64_t wy);
+void viewGetTileFromWorldPosition(View *V, int64_t wx, int64_t wy, int level,
+                                  int *si, int *sj);
 
 void viewPrintDebug(View *V);
 void viewFree(View *V);

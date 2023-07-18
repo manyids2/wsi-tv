@@ -17,8 +17,8 @@ void viewInit(View *V, char *slide) {
   getWindowSizeKitty(&V->vtw, &V->vth);
 
   // Compute cell dims
-  V->cw = (int)V->vtw / V->cols;
-  V->ch = (int)V->vth / V->rows;
+  V->cw = V->vtw / V->cols;
+  V->ch = V->vth / V->rows;
 
   // Keep margin of 1 on top for status bar
   // 5 on left for style
@@ -49,6 +49,7 @@ void viewInit(View *V, char *slide) {
   int level, downsample, smi, smj, vmi, vmj, left, top;
 
   // Initialize cache layers
+  clearScreen();
   for (int layer = 0; layer < 3; layer++) {
     level = V->l - layer;
     if (level < 0)
@@ -58,8 +59,9 @@ void viewInit(View *V, char *slide) {
     smj = V->S->level_h[level] / V->ts;
     vmi = V->vmi;
     vmj = V->vmj;
-    left = V->si;
-    top = V->sj;
+
+    viewGetTileFromWorldPosition(V, V->wx, V->wy, level, &left, &top);
+
     cacheLayerInit(V->C, layer, level, downsample, smi, smj, vmi, vmj, left,
                    top);
   }
@@ -102,6 +104,21 @@ void viewSetWorldPosition(View *V, int64_t wx, int64_t wy) {
 
   // Reset to align tiles
   viewSetSlideCoords(V, V->si, V->sj);
+}
+
+void viewGetTileFromWorldPosition(View *V, int64_t wx, int64_t wy, int level,
+                                  int *si, int *sj) {
+  V->wx = wx;
+  V->wy = wy;
+
+  // Corresponding slide positions
+  int64_t sx = V->wx / V->S->downsamples[level];
+  int64_t sy = V->wy / V->S->downsamples[level];
+
+  // Recompute top left
+  // NOTE: edge case -> level is too small for view
+  *si = (sx - (V->vw / 2)) / V->ts;
+  *sj = (sy - (V->vh / 2)) / V->ts;
 }
 
 void viewSetSlideCoords(View *V, int si, int sj) {
@@ -189,6 +206,41 @@ void viewDrawTiles(View *V) {
   }
 }
 
+void viewDrawCache(View *V) {
+  char s[32];
+  int len, index;
+  int32_t kid;
+  LayerCache lc;
+  int x, y, si, sj, row, col;
+  for (int layer = 0; layer < 3; layer++) {
+    lc = V->C->layers[layer];
+    for (int j = 0; j < V->vmj; j++) {
+      for (int i = 0; i < V->vmi; i++) {
+        x = i * V->ts + V->aox;
+        y = j * V->ts + V->aoy;
+        col = x / V->cw;
+        row = y / V->ch;
+
+        index = (layer * V->vmi * V->vmj) + i * V->vmj + j;
+        kid = lc.kid[index];
+        si = lc.si[index];
+        sj = lc.sj[index];
+
+        // Write current row, col
+        moveCursor(row + 1 + layer * 2, col);
+        len = snprintf(s, sizeof(s), "%d,%d", si, sj);
+        assert(write(STDOUT_FILENO, s, len) >= 0);
+
+        // Write current kid
+        moveCursor(row + 2 + layer * 2, col);
+        len = snprintf(s, sizeof(s), "%d", kid);
+        assert(write(STDOUT_FILENO, s, len) >= 0);
+      }
+      assert(write(STDOUT_FILENO, "\r\n", 4) >= 0);
+    }
+  }
+}
+
 void viewPrintDebug(View *V) {
   char s[2048];
   int len;
@@ -224,6 +276,9 @@ void viewPrintDebug(View *V) {
     break;
   case 2:
     viewDrawTiles(V);
+    break;
+  case 3:
+    viewDrawCache(V);
     break;
   default:
     break;

@@ -50,7 +50,7 @@ void cacheLayerInit(Cache *C, int layer, int level, float downsample, int smi,
   lc.buf64 = (char *)malloc((num_pixels * 4 + 1) * sizeof(char));
 
   // Set layer offset
-  lc.koffset = layer * 100000;
+  lc.koffset = layer * 10000;
 
   // First, visible tiles
   int index;
@@ -88,25 +88,21 @@ void cacheLayerInit(Cache *C, int layer, int level, float downsample, int smi,
     }
   }
 
-  // Then, first neighbours
-
-  // Finally, second neighbours
-
   // Save the reference to initialized thang
-  C->layers[layer] = &lc;
+  C->layers[layer] = lc;
 }
 
 void cacheDisplayLevel(Cache *C, int level) {
   int layer = cacheGetLayerOfLevel(C, level);
   if (layer < 0)
     return;
-  LayerCache *lc = C->layers[layer];
+  LayerCache lc = C->layers[layer];
 
   int index, vx, vy, col, row, X, Y;
-  for (int i = 0; i < lc->vmi; i++) {
-    for (int j = 0; j < lc->vmj; j++) {
+  for (int i = 0; i < lc.vmi; i++) {
+    for (int j = 0; j < lc.vmj; j++) {
       // Constant definition for index
-      index = (layer * lc->vmi * lc->vmj) + i * lc->vmj + j;
+      index = (layer * lc.vmi * lc.vmj) + i * lc.vmj + j;
 
       // Move cursor to row, col, use X, Y as cell offset
       vx = i * C->ts + C->aox;
@@ -115,8 +111,8 @@ void cacheDisplayLevel(Cache *C, int level) {
       row = vy / C->ch;
       X = vx - (col * C->cw);
       Y = vy - (row * C->ch);
-      if (lc->kid[index] > 0)
-        kittyDisplayImage(lc->kid[index], row, col, X, Y, -2);
+      if (lc.kid[index] > 0)
+        kittyDisplayImage(lc.kid[index], row, col, X, Y, -2);
     }
   }
 }

@@ -48,7 +48,7 @@ typedef struct Cache {
 
   // Buffers for each level
   int levels[LAYERS]; // Layer holds which level
-  LayerCache *layers[LAYERS];
+  LayerCache layers[LAYERS];
 } Cache;
 
 void cacheInit(Cache *C, openslide_t *osr, int ts, int cw, int ch, int aox,

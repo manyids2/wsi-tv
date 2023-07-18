@@ -65,7 +65,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
 
   // Debug info
   case 'd':
-    A.V->debug = (A.V->debug + 1) % 3;
+    A.V->debug = (A.V->debug + 1) % 4;
     break;
   }
 
