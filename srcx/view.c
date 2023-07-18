@@ -193,16 +193,15 @@ void viewDrawTiles(View *V) {
       Y = y - (row * V->ch);
 
       // Write current row, col
-      moveCursor(row + 1, col);
-      len = snprintf(s, sizeof(s), "%d,%d", si, sj);
+      moveCursor(row, col);
+      len = snprintf(s, sizeof(s), "c,r:%d,%d", si, sj);
       assert(write(STDOUT_FILENO, s, len) >= 0);
 
       // Write current X, Y
-      moveCursor(row + 2, col);
-      len = snprintf(s, sizeof(s), "%d,%d", X, Y);
+      moveCursor(row + 1, col);
+      len = snprintf(s, sizeof(s), "X,Y:%d,%d", X, Y);
       assert(write(STDOUT_FILENO, s, len) >= 0);
     }
-    assert(write(STDOUT_FILENO, "\r\n", 4) >= 0);
   }
 }
 
@@ -226,17 +225,16 @@ void viewDrawCache(View *V) {
         si = lc.si[index];
         sj = lc.sj[index];
 
-        // Write current row, col
-        moveCursor(row + 1 + layer * 2, col);
-        len = snprintf(s, sizeof(s), "%d,%d", si, sj);
+        // Write current kid
+        moveCursor(row + layer * 2, col);
+        len = snprintf(s, sizeof(s), "%d.kid: %d", lc.level, kid);
         assert(write(STDOUT_FILENO, s, len) >= 0);
 
-        // Write current kid
-        moveCursor(row + 2 + layer * 2, col);
-        len = snprintf(s, sizeof(s), "%d", kid);
+        // Write current row, col
+        moveCursor(row + 1 + layer * 2, col);
+        len = snprintf(s, sizeof(s), "si,sj: %d,%d", si, sj);
         assert(write(STDOUT_FILENO, s, len) >= 0);
       }
-      assert(write(STDOUT_FILENO, "\r\n", 4) >= 0);
     }
   }
 }
