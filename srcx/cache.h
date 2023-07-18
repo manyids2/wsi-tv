@@ -8,12 +8,27 @@
 
 // limit view to 3072x2048, define landscape?
 #define TILE_SIZE 256
-#define MAX_I 12
-#define MAX_J 8
+#define MAX_COLS 6
+#define MAX_ROWS 4
 
 // limit similar to kitty limits (320MB)
 #define MAX_TILES_PER_LAYER 192
 
+/*
+ * Cache for one level
+ *   layer                   : id of cache layer ( C->layers[layer] )
+ *   downsample              : from slide info
+ *   smi, smj, vmi, vmj      : maximums of slide and view
+ *   left, right, top, bottom: rows and cols
+ *   buf, buf64              : buffers for tile, base64 encoding
+ *   koffset                 : kitty id offset for layer ( to keep unique )
+ *
+ *   si, sj  :  position of tile in slide 
+ *      kid  :  kitty id of tile
+ *
+ *     index =  i * vmj + j;
+ *
+ */
 typedef struct LayerCache {
   // Level
   int level;

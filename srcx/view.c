@@ -22,13 +22,13 @@ void viewInit(View *V, char *slide) {
 
   // Keep margin of 1 on top for status bar
   // 5 on left for style
-  V->aox = 5 * V->cw;
-  V->aoy = 15 * V->ch;
+  V->aox = 0;
+  V->aoy = 0;
 
   // Compute effective view ( for now, no margin on bottom and right )
   // bound to make sure kitty can handle 3 layers
-  V->vw = MIN(V->vtw - V->aox, TILE_SIZE * 12);
-  V->vh = MIN(V->vth - V->aoy, TILE_SIZE * 8);
+  V->vw = MIN(V->vtw - V->aox, TILE_SIZE * MAX_COLS);
+  V->vh = MIN(V->vth - V->aoy, TILE_SIZE * MAX_ROWS);
 
   // Initialize view level maximums
   V->vmi = V->vw / V->ts;
@@ -164,6 +164,7 @@ void viewMoveLeft(View *V) {
   if (si == V->si)
     return;
   viewSetSlideCoords(V, si, V->sj);
+
 }
 
 void viewMoveRight(View *V) {
@@ -231,7 +232,7 @@ void viewDrawCache(View *V) {
         col = x / V->cw;
         row = y / V->ch;
 
-        index = (layer * V->vmi * V->vmj) + i * V->vmj + j;
+        index = i * lc.vmj + j;
         kid = lc.kid[index];
         si = lc.si[index];
         sj = lc.sj[index];

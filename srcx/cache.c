@@ -58,7 +58,7 @@ void cacheLayerInit(Cache *C, int layer, int level, float downsample, int smi,
   for (int i = 0; i < vmi; i++) {
     for (int j = 0; j < vmj; j++) {
       // Constant definition for index
-      index = (layer * vmi * vmj) + i * vmj + j;
+      index = i * vmj + j;
 
       // Get si and sj
       si = i + left;
@@ -102,7 +102,7 @@ void cacheDisplayLevel(Cache *C, int level) {
   for (int i = 0; i < lc.vmi; i++) {
     for (int j = 0; j < lc.vmj; j++) {
       // Constant definition for index
-      index = (layer * lc.vmi * lc.vmj) + i * lc.vmj + j;
+      index = i * lc.vmj + j;
 
       // Move cursor to row, col, use X, Y as cell offset
       vx = i * C->ts + C->aox;
