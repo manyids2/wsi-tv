@@ -50,7 +50,7 @@ void cacheLayerInit(Cache *C, int layer, int level, float downsample, int smi,
   lc.buf64 = (char *)malloc((num_pixels * 4 + 1) * sizeof(char));
 
   // Set layer offset
-  lc.koffset = layer * 10000;
+  lc.koffset = (layer + 1) * 10000;
 
   // First, visible tiles
   int index;
