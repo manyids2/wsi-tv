@@ -10,3 +10,5 @@ gmon.txt
 tests/test_base64
 tests/prof.out
 print-thumbnail
+tests/example_pthreads
+tests/test_threads

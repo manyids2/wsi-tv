@@ -33,5 +33,5 @@ int main(int argc, char **argv) {
   // Free all resources
   viewerFree(&V);
 
-  return 0;
+  return EXIT_SUCCESS;
 }
