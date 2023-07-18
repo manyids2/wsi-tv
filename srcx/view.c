@@ -87,6 +87,17 @@ void viewSetLevel(View *V, int level) {
 
   // Keep world position constant
   viewSetWorldPosition(V, V->wx, V->wy);
+
+  // Update the cache
+  // Handle the various case
+  // - near top
+  // - in the middle
+  // - near bottom
+  for (int layer = 0; layer < 3; layer++) {
+    int level = V->l - layer;
+    if (level < 0)
+      break;
+  }
 }
 
 void viewSetWorldPosition(View *V, int64_t wx, int64_t wy) {
@@ -116,9 +127,9 @@ void viewGetTileFromWorldPosition(View *V, int64_t wx, int64_t wy, int level,
   int64_t sy = V->wy / V->S->downsamples[level];
 
   // Recompute top left
-  // NOTE: edge case -> level is too small for view
-  *si = (sx - (V->vw / 2)) / V->ts;
-  *sj = (sy - (V->vh / 2)) / V->ts;
+  // HACK: Why does this need +1??
+  *si = ((sx - (V->vw / 2)) / V->ts) + 1;
+  *sj = ((sy - (V->vh / 2)) / V->ts) + 1;
 }
 
 void viewSetSlideCoords(View *V, int si, int sj) {
