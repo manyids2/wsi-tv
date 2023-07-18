@@ -23,11 +23,15 @@
  *   buf, buf64              : buffers for tile, base64 encoding
  *   koffset                 : kitty id offset for layer ( to keep unique )
  *
- *   si, sj  :  position of tile in slide 
+ *   si, sj  :  position of tile in slide
  *      kid  :  kitty id of tile
  *
- *     index =  i * vmj + j;
+ *     Main strategy:
+ *     ----------------------------------------------------
+ *     index =  i * vmj + j => This marks position in grid.
  *
+ *     si, sj, kid are loaded/removed/modified on movement.
+ *     ----------------------------------------------------
  */
 typedef struct LayerCache {
   // Level
