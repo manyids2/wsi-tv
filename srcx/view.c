@@ -71,6 +71,9 @@ void viewInit(View *V, char *slide) {
 }
 
 void viewSetLevel(View *V, int level) {
+  // To check zoom in or out
+  int old_level = V->l;
+
   // Set level
   V->l = level;
 
@@ -93,10 +96,28 @@ void viewSetLevel(View *V, int level) {
   // - near top
   // - in the middle
   // - near bottom
-  for (int layer = 0; layer < LAYERS; layer++) {
-    int level = V->l - layer;
-    if (level < 0)
-      break;
+  if (level > old_level) {
+    // zoom out
+    if (level == V->S->level_count - 1) {
+      // keep last 3 levels
+      for (int ll = 0; ll < LAYERS; ll++) {
+      }
+    } else {
+      // keep middle, up and down
+      for (int ll = -1; ll < LAYERS - 1; ll++) {
+      }
+    }
+  } else {
+    // zoom in
+    if (level == 0) {
+      // keep first 3 levels
+      for (int ll = 0; ll < LAYERS; ll++) {
+      }
+    } else {
+      // keep middle, up and down
+      for (int ll = -1; ll < LAYERS - 1; ll++) {
+      }
+    }
   }
 }
 
@@ -164,7 +185,6 @@ void viewMoveLeft(View *V) {
   if (si == V->si)
     return;
   viewSetSlideCoords(V, si, V->sj);
-
 }
 
 void viewMoveRight(View *V) {
@@ -227,11 +247,13 @@ void viewDrawCache(View *V) {
     lc = V->C->layers[layer];
     for (int j = 0; j < V->vmj; j++) {
       for (int i = 0; i < V->vmi; i++) {
+        // Compute position
         x = i * V->ts + V->aox;
         y = j * V->ts + V->aoy;
         col = x / V->cw;
         row = y / V->ch;
 
+        // Get kitty index and tile positions
         index = i * lc.vmj + j;
         kid = lc.kid[index];
         si = lc.si[index];
