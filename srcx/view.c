@@ -50,7 +50,7 @@ void viewInit(View *V, char *slide) {
 
   // Initialize cache layers
   clearScreen();
-  for (int layer = 0; layer < 3; layer++) {
+  for (int layer = 0; layer < LAYERS; layer++) {
     level = V->l - layer;
     if (level < 0)
       break;
@@ -93,7 +93,7 @@ void viewSetLevel(View *V, int level) {
   // - near top
   // - in the middle
   // - near bottom
-  for (int layer = 0; layer < 3; layer++) {
+  for (int layer = 0; layer < LAYERS; layer++) {
     int level = V->l - layer;
     if (level < 0)
       break;
@@ -222,7 +222,7 @@ void viewDrawCache(View *V) {
   int32_t kid;
   LayerCache lc;
   int x, y, si, sj, row, col;
-  for (int layer = 0; layer < 3; layer++) {
+  for (int layer = 0; layer < LAYERS; layer++) {
     lc = V->C->layers[layer];
     for (int j = 0; j < V->vmj; j++) {
       for (int i = 0; i < V->vmi; i++) {
